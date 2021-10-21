@@ -1,0 +1,81 @@
+---
+title: "SSRS_motus_data"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## MotusRBook
+
+Based on examples in **Motus R Book**
+by Tara L. Crewe, Zoe Crysler, and Philip Taylor
+https://beta.motus.org/MotusRBook/
+
+
+```{r setup}
+library(motus)
+library(lubridate)
+library(dplyr)
+Sys.setenv(TZ = "UTC")
+proj.num = 247
+
+df.serno = c("CTT-957865AC5BF7", "CTT-C0612F7F986B", "CTT-27532C924059")
+
+
+# Project
+## First time
+proj.sql.motus <- tagme(projRecv = proj.num, new = TRUE, update = TRUE)
+
+# Receivers
+
+
+motusLogout()
+```
+
+## Update files
+
+You can update individual sql files or all at once.
+
+```{r update}
+# Individually
+proj.sql.motus <- tagme(projRecv = df.serno[1], new = FALSE, update = TRUE)
+proj.sql.motus <- tagme(projRecv = df.serno[1], new = TRUE, update = TRUE)
+proj.sql.motus <- tagme(projRecv = df.serno[1], new = TRUE, update = TRUE)
+
+# All at once
+for (k in 1:length(df.serno)) {
+  tagme(df.serno[k], update = TRUE)
+}
+# All at once
+tagme()
+
+
+motusLogout()
+```
+
+## Accessing tables
+
+```{r data}
+library(DBI)
+library(RSQLite)
+
+file.name <- dbConnect(SQLite(), getwd())
+dbListTables(file.name)
+dbListFields(file.name, "species")
+tbl.alltags <- tbl(sql.motus, "alltags") # virtual table
+# Filter the data
+tbl.TRBL <- tbl(sql.motus, "alltags") %>%
+  filter(speciesEN == "Tri-colored Blackbird") %>%
+  collect()
+
+# Get the daily median location of GPS points for these data
+TRBL.GPS <- getGPS(src = sql.motus, data = tbl.TRBL)
+
+# Get flat table
+df.alltags <- tbl.alltags %>% 
+  collect() %>% 
+  as.data.frame()
+```
+
