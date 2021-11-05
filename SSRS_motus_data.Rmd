@@ -39,23 +39,42 @@ motusLogout()
 You can update individual sql files or all at once.
 
 ```{r update}
+# Project
+## Update
+proj.sql.motus <- tagme(projRecv = proj.num, new = FALSE, update = TRUE)
+rec.names = paste0(c("rth", "lc4", "canebrake"), ".sql.motus")
+
 # Individually
-proj.sql.motus <- tagme(projRecv = df.serno[1], new = FALSE, update = TRUE)
-proj.sql.motus <- tagme(projRecv = df.serno[1], new = TRUE, update = TRUE)
-proj.sql.motus <- tagme(projRecv = df.serno[1], new = TRUE, update = TRUE)
+rec.names[1] <- tagme(projRecv = df.serno[1], new = TRUE, update = TRUE)
+rec.names[2] <- tagme(projRecv = df.serno[2], new = TRUE, update = TRUE)
+rec.names[3] <- tagme(projRecv = df.serno[3], new = TRUE, update = TRUE)
 
-# All at once
+# All at once with variable assignment so it is comparable to the individual way
 for (k in 1:length(df.serno)) {
-  tagme(df.serno[k], update = TRUE)
+  assign(rec.names[k], tagme(df.serno[k], update = TRUE))
 }
-# All at once
-tagme()
 
+# All at once without varialbe assignment
+# for (k in 1:length(df.serno)) {
+#   tagme(df.serno[k], update = TRUE)
+# }
+
+# All at once for all of your projects
+### Beware this till take a really long tims
+# tagme()
+
+# This will get data on all projects and receiver deployments
+## Access this in recDeps table in proj.sql.motus
+metadata(proj.sql.motus)
 
 motusLogout()
 ```
 
 ## Accessing tables
+
+Once you have the .motus files downloaded and updated, you can look at them 
+using a database viewer like dBeaver by connecting an sQLite connection to the 
+location on disk.
 
 ```{r data}
 library(DBI)
