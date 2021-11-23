@@ -19,9 +19,19 @@ library(motus)
 library(lubridate)
 library(dplyr)
 Sys.setenv(TZ = "UTC")
-proj.num = 247
 
+# Kern River Valley Tri-colored Blackbird Study
+proj.num = 247 
+
+# rth, lc4, canebrake
 df.serno = c("CTT-957865AC5BF7", "CTT-C0612F7F986B", "CTT-27532C924059")
+
+# California-Shorebird Migration and Drought Study
+proj.num = 458 
+
+# Pixley NWR, Colusa NWR, Staten Island, Bird Haven, Montna Farms
+df.serno = c("CTT-140682CCEB52", "CTT-9697596E76D6", "CTT-BF45E4FCD972",
+             "CTT-F51A7C862D57", "CTT-2CFE3C766E92")
 
 
 # Project
@@ -42,12 +52,19 @@ You can update individual sql files or all at once.
 # Project
 ## Update
 proj.sql.motus <- tagme(projRecv = proj.num, new = FALSE, update = TRUE)
+
+# Kern River Valley Tri-colored Blackbird Study
 rec.names = paste0(c("rth", "lc4", "canebrake"), ".sql.motus")
+
+# California-Shorebird Migration and Drought Study
+rec.names = paste0(c("pixley", "colusa", "staten", "birdhaven", "montna"), ".sql.motus")
 
 # Individually
 rec.names[1] <- tagme(projRecv = df.serno[1], new = TRUE, update = TRUE)
 rec.names[2] <- tagme(projRecv = df.serno[2], new = TRUE, update = TRUE)
 rec.names[3] <- tagme(projRecv = df.serno[3], new = TRUE, update = TRUE)
+rec.names[4] <- tagme(projRecv = df.serno[4], new = TRUE, update = TRUE)
+rec.names[5] <- tagme(projRecv = df.serno[5], new = TRUE, update = TRUE)
 
 # All at once with variable assignment so it is comparable to the individual way
 for (k in 1:length(df.serno)) {
