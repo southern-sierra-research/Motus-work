@@ -24,31 +24,17 @@ Sys.setenv(TZ = "UTC")
 # Stopped using this to make things more clear and eliminate mismatches
 # proj.num = 247 
 
-# rth, lc4, canebrake
-df.247.serno = c("CTT-957865AC5BF7", "CTT-C0612F7F986B", "CTT-27532C924059")
-
-# California-Shorebird Migration and Drought Study
-# Stopped using this to make things more clear and eliminate mismatches
-# proj.num = 458 
-
-# Cosumnes River Preserve, Merced NWR, Staten Island,
-# Colusa NWR, Sacramento NWR, Montna Farms,
-# Conaway Ranch, Napa Sonoma Marsh, Bird Haven, 
-# Pixley NWR, 
-df.458.serno = c("CTT-D00F694B4918", "CTT-ECDC2345F5CC", "CTT-BF45E4FCD972", 
-             "CTT-9697596E76D6", "CTT-1EC0EE6D76E6", "CTT-2CFE3C766E92", 
-             "CTT-B376A7ED47F6", "CTT-21FFFAC8B255", "CTT-F51A7C862D57", 
-             "CTT-140682CCEB52") 
-# Uninstalled "CTT-8F11AA6622E1", "CTT-515928C2BC39"
-
+# rth, canebrake, migrant corner, 
+# frog spring, tunnel spring, freeman canyon spring
+df.247.serno = c("CTT-957865AC5BF7", "CTT-27532C924059", "CTT-1F618DF06116", 
+                 "CTT-7406F10DF482", "CTT-85E9238B9814","CTT-89E107C9320E")
+# Uninstalled "CTT-C0612F7F986B",
 
 # Project
 ## First time
 proj.247.sql.motus <- tagme(projRecv = 247, new = TRUE, update = TRUE)
-proj.458.sql.motus <- tagme(projRecv = 458, new = TRUE, update = TRUE)
 
 # Receivers
-
 
 motusLogout()
 ```
@@ -61,45 +47,26 @@ You can update individual sql files or all at once.
 # Project
 ## Update existing project from motus database
 proj.247.sql.motus <- tagme(projRecv = 247, new = FALSE, update = TRUE)
-proj.458.sql.motus <- tagme(projRecv = 458, new = FALSE, update = TRUE)
 
- # Kern River Valley Tri-colored Blackbird Study
-rec.247.names = paste0(c("rth", "lc4", "canebrake"), ".sql.motus")
-
-# California-Shorebird Migration and Drought Study
-# Needs to be expanded
-rec.458.names = paste0(c("cosumnes", "merced", "staten",
-                     "colusa", "sacramento", "montna",
-                     "conaway","napasonoma", "birdhaven",  
-                     "pixley"), ".sql.motus")
+# Kern River Valley Tri-colored Blackbird Study
+rec.247.names = paste0(c("rth", "canebrake", "migrant corner", 
+                         "frog spring", "tunnel spring", "freeman canyon spring"), 
+                       ".sql.motus")
 
 # Individually
-# Do 3 for SSRS stations
+# Do for SSRS stations
+# Update as stations are added
 rec.247.names[1] <- tagme(projRecv = df.247.serno[1], new = TRUE, update = TRUE)
 rec.247.names[2] <- tagme(projRecv = df.247.serno[2], new = TRUE, update = TRUE)
 rec.247.names[3] <- tagme(projRecv = df.247.serno[3], new = TRUE, update = TRUE)
-
-# Do 10-12 for TNC
-rec.458.names[1] <- tagme(projRecv = df.458.serno[1], new = TRUE, update = TRUE)
-rec.458.names[2] <- tagme(projRecv = df.458.serno[2], new = TRUE, update = TRUE)
-rec.458.names[3] <- tagme(projRecv = df.458.serno[3], new = TRUE, update = TRUE)
-rec.458.names[4] <- tagme(projRecv = df.458.serno[4], new = TRUE, update = TRUE)
-rec.458.names[5] <- tagme(projRecv = df.458.serno[5], new = TRUE, update = TRUE)
-rec.458.names[6] <- tagme(projRecv = df.458.serno[6], new = TRUE, update = TRUE)
-rec.458.names[7] <- tagme(projRecv = df.458.serno[7], new = TRUE, update = TRUE)
-rec.458.names[8] <- tagme(projRecv = df.458.serno[8], new = TRUE, update = TRUE)
-rec.458.names[9] <- tagme(projRecv = df.458.serno[9], new = TRUE, update = TRUE)
-rec.458.names[10] <- tagme(projRecv = df.458.serno[10], new = TRUE, update = TRUE)
-# Got 6 TNC stations done on first run
+rec.247.names[4] <- tagme(projRecv = df.247.serno[4], new = TRUE, update = TRUE)
+rec.247.names[5] <- tagme(projRecv = df.247.serno[5], new = TRUE, update = TRUE)
+rec.247.names[6] <- tagme(projRecv = df.247.serno[6], new = TRUE, update = TRUE)
 
 # All at once with variable assignment so it is comparable to the individual way
 # SSRS
 for (k in 1:length(df.247.serno)) {
   assign(rec.247.names[k], tagme(df.247.serno[k], update = TRUE))
-}
-# TNC
-for (k in 1:length(df.458.serno)) {
-  assign(rec.458.names[k], tagme(df.458.serno[k], update = TRUE))
 }
 
 # All at once without varialbe assignment
@@ -114,7 +81,6 @@ for (k in 1:length(df.458.serno)) {
 # This will get data on all projects and receiver deployments
 ## Access this in recDeps table in proj.projnum.sql.motus
 metadata(proj.247.sql.motus, projectIDs = 247)
-metadata(proj.458.sql.motus, projectIDs = 458)
 
 motusLogout()
 ```
