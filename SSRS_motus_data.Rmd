@@ -21,22 +21,31 @@ library(dplyr)
 Sys.setenv(TZ = "UTC")
 
 # Kern River Valley Tri-colored Blackbird Study
-proj.num = 247 
+# Stopped using this to make things more clear and eliminate mismatches
+# proj.num = 247 
 
 # rth, lc4, canebrake
-df.serno = c("CTT-957865AC5BF7", "CTT-C0612F7F986B", "CTT-27532C924059")
+df.247.serno = c("CTT-957865AC5BF7", "CTT-C0612F7F986B", "CTT-27532C924059")
 
 # California-Shorebird Migration and Drought Study
-proj.num = 458 
+# Stopped using this to make things more clear and eliminate mismatches
+# proj.num = 458 
 
-# Pixley NWR, Colusa NWR, Staten Island, Bird Haven, Montna Farms
-df.serno = c("CTT-140682CCEB52", "CTT-9697596E76D6", "CTT-BF45E4FCD972",
-             "CTT-F51A7C862D57", "CTT-2CFE3C766E92")
+# Cosumnes River Preserve, Merced NWR, Staten Island,
+# Colusa NWR, Sacramento NWR, Montna Farms,
+# Conaway Ranch, Napa Sonoma Marsh, Bird Haven, 
+# Pixley NWR, 
+df.458.serno = c("CTT-D00F694B4918", "CTT-ECDC2345F5CC", "CTT-BF45E4FCD972", 
+             "CTT-9697596E76D6", "CTT-1EC0EE6D76E6", "CTT-2CFE3C766E92", 
+             "CTT-B376A7ED47F6", "CTT-21FFFAC8B255", "CTT-F51A7C862D57", 
+             "CTT-140682CCEB52") 
+# Uninstalled "CTT-8F11AA6622E1", "CTT-515928C2BC39"
 
 
 # Project
 ## First time
-proj.sql.motus <- tagme(projRecv = proj.num, new = TRUE, update = TRUE)
+proj.247.sql.motus <- tagme(projRecv = 247, new = TRUE, update = TRUE)
+proj.458.sql.motus <- tagme(projRecv = 458, new = TRUE, update = TRUE)
 
 # Receivers
 
@@ -50,25 +59,47 @@ You can update individual sql files or all at once.
 
 ```{r update}
 # Project
-## Update
-proj.sql.motus <- tagme(projRecv = proj.num, new = FALSE, update = TRUE)
+## Update existing project from motus database
+proj.247.sql.motus <- tagme(projRecv = 247, new = FALSE, update = TRUE)
+proj.458.sql.motus <- tagme(projRecv = 458, new = FALSE, update = TRUE)
 
-# Kern River Valley Tri-colored Blackbird Study
-rec.names = paste0(c("rth", "lc4", "canebrake"), ".sql.motus")
+ # Kern River Valley Tri-colored Blackbird Study
+rec.247.names = paste0(c("rth", "lc4", "canebrake"), ".sql.motus")
 
 # California-Shorebird Migration and Drought Study
-rec.names = paste0(c("pixley", "colusa", "staten", "birdhaven", "montna"), ".sql.motus")
+# Needs to be expanded
+rec.458.names = paste0(c("cosumnes", "merced", "staten",
+                     "colusa", "sacramento", "montna",
+                     "conaway","napasonoma", "birdhaven",  
+                     "pixley"), ".sql.motus")
 
 # Individually
-rec.names[1] <- tagme(projRecv = df.serno[1], new = TRUE, update = TRUE)
-rec.names[2] <- tagme(projRecv = df.serno[2], new = TRUE, update = TRUE)
-rec.names[3] <- tagme(projRecv = df.serno[3], new = TRUE, update = TRUE)
-rec.names[4] <- tagme(projRecv = df.serno[4], new = TRUE, update = TRUE)
-rec.names[5] <- tagme(projRecv = df.serno[5], new = TRUE, update = TRUE)
+# Do 3 for SSRS stations
+rec.247.names[1] <- tagme(projRecv = df.247.serno[1], new = TRUE, update = TRUE)
+rec.247.names[2] <- tagme(projRecv = df.247.serno[2], new = TRUE, update = TRUE)
+rec.247.names[3] <- tagme(projRecv = df.247.serno[3], new = TRUE, update = TRUE)
+
+# Do 10-12 for TNC
+rec.458.names[1] <- tagme(projRecv = df.458.serno[1], new = TRUE, update = TRUE)
+rec.458.names[2] <- tagme(projRecv = df.458.serno[2], new = TRUE, update = TRUE)
+rec.458.names[3] <- tagme(projRecv = df.458.serno[3], new = TRUE, update = TRUE)
+rec.458.names[4] <- tagme(projRecv = df.458.serno[4], new = TRUE, update = TRUE)
+rec.458.names[5] <- tagme(projRecv = df.458.serno[5], new = TRUE, update = TRUE)
+rec.458.names[6] <- tagme(projRecv = df.458.serno[6], new = TRUE, update = TRUE)
+rec.458.names[7] <- tagme(projRecv = df.458.serno[7], new = TRUE, update = TRUE)
+rec.458.names[8] <- tagme(projRecv = df.458.serno[8], new = TRUE, update = TRUE)
+rec.458.names[9] <- tagme(projRecv = df.458.serno[9], new = TRUE, update = TRUE)
+rec.458.names[10] <- tagme(projRecv = df.458.serno[10], new = TRUE, update = TRUE)
+# Got 6 TNC stations done on first run
 
 # All at once with variable assignment so it is comparable to the individual way
-for (k in 1:length(df.serno)) {
-  assign(rec.names[k], tagme(df.serno[k], update = TRUE))
+# SSRS
+for (k in 1:length(df.247.serno)) {
+  assign(rec.247.names[k], tagme(df.247.serno[k], update = TRUE))
+}
+# TNC
+for (k in 1:length(df.458.serno)) {
+  assign(rec.458.names[k], tagme(df.458.serno[k], update = TRUE))
 }
 
 # All at once without varialbe assignment
@@ -77,12 +108,13 @@ for (k in 1:length(df.serno)) {
 # }
 
 # All at once for all of your projects
-### Beware this till take a really long tims
+### Beware this will take a really long tims
 # tagme()
 
 # This will get data on all projects and receiver deployments
-## Access this in recDeps table in proj.sql.motus
-metadata(proj.sql.motus)
+## Access this in recDeps table in proj.projnum.sql.motus
+metadata(proj.247.sql.motus, projectIDs = 247)
+metadata(proj.458.sql.motus, projectIDs = 458)
 
 motusLogout()
 ```
@@ -97,21 +129,501 @@ location on disk.
 library(DBI)
 library(RSQLite)
 
-file.name <- dbConnect(SQLite(), getwd())
+file.name <- dbConnect(SQLite(), "project-247.motus")
 dbListTables(file.name)
 dbListFields(file.name, "species")
-tbl.alltags <- tbl(sql.motus, "alltags") # virtual table
+
+# Kern River Valley Tri-colored Blackbird Study
+# proj.num = 247
+# This just points to the database in the default directory
+
+proj.247.sql.motus = tagme(247, update = FALSE)
+# virtual table
+tbl.247.alltags <- tbl(proj.247.sql.motus, "alltags")
 # Filter the data
-tbl.TRBL <- tbl(sql.motus, "alltags") %>%
-  filter(speciesEN == "Tri-colored Blackbird") %>%
+# This is a filtered table with over 3 million observations
+tbl.247.TRBL <- tbl(proj.247.sql.motus, "alltags") %>%
+  filter(speciesEN == "Tricolored Blackbird") %>%
   collect()
 
 # Get the daily median location of GPS points for these data
-TRBL.GPS <- getGPS(src = sql.motus, data = tbl.TRBL)
+TRBL.GPS <- getGPS(src = proj.247.sql.motus, data = tbl.247.TRBL)
 
 # Get flat table
-df.alltags <- tbl.alltags %>% 
+# df.247.alltags <- tbl.247.alltags %>% 
+#   collect() %>% 
+#   as.data.frame()
+
+# or
+# Get table and fix datetimes
+df.247.alltags <- tbl.247.alltags %>% 
   collect() %>% 
+  as.data.frame() %>%     # for all fields in the df (data frame)
+  mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"))
+
+# Remove old variables without project numbers in them below here
+
+df.alltags.247.01_22 = df.247.alltags
+# export as RDS to preserve dateTimes
+# You can then just import this to work with tag data from before the date of export
+saveRDS(df.alltags.247.01_22, "df_alltags_247.01_22.rds")
+# To read it back in
+# df.alltags.247.01_22 <- readRDS("df_alltags_247.01_22.rds")
+```
+
+## Tag Deployments
+
+
+```{r tagdeploys}
+# 1. download full tag metadata for our project only
+# See update section above
+
+# 2. determine how many tags are registered to your project
+tbl.247.tags <- tbl(proj.247.sql.motus, "tags")
+df.247.tags <- tbl.247.tags %>%
+  filter(projectID == 247) %>%
+  collect() %>%
   as.data.frame()
+nrow(df.247.tags)
+unique(df.247.tags$tagID)
+
+# 3. determine how many of those registered tags were deployed
+tbl.247.tagDeps <- tbl(proj.247.sql.motus, "tagDeps") 
+
+df.247.tagDeps <- tbl.247.tagDeps %>%
+  filter(projectID == 247) %>%
+  collect() %>%
+  as.data.frame() %>% # once in df format, can format dates with lubridate
+  mutate(tsStart = as_datetime(tsStart, tz = "UTC", origin = "1970-01-01"),
+         tsEnd = as_datetime(tsEnd, tz = "UTC", origin = "1970-01-01")) 
+  # find tags that are not deployed
+anti_join(df.247.tags, df.247.tagDeps, by = "tagID")
+  # - currently there are 20, and some show as deployed, so not sure what this means
+
+  # find multiple deployments
+df.alltags.247.01_22 %>%
+  select(motusTagID, tagDeployID) %>%
+  filter(!(is.na(tagDeployID))) %>% # remove NA tagDeployIDs
+  distinct() %>%
+  group_by(motusTagID) %>%
+  mutate(n = n()) %>%
+  filter(n > 1)
+  # - Currently there are 22 tags with multiple deployments
+df.alltags.247.01_22 <- df.alltags.247.01_22 %>%
+  mutate(motusTagDepID = paste(motusTagID, tagDeployID, sep = "."))
+df.247.tagDeps <- df.247.tagDeps %>%
+  mutate(motusTagDepID = paste(tagID, deployID, sep = "."))
+
+
+# Plot timelines
+# install.packages("vistime")
+library(tidyverse)
+library(ggplot2)
+library(vistime)
+df.247.timeline = df.247.tagDeps %>%
+  select(fullID, start = tsStart, end = tsEnd) %>%
+  mutate(event = str_extract(fullID, "(?<=#).+(?=:)")) %>%
+  filter(!is.na(start))
+
+p = gg_vistime(df.247.timeline)
+p
+
+# 4. determine location of tag deployments
+library(ggplot2)
+library(rworldmap)
+na.lakes <- map_data(map = "lakes")
+na.lakes <- mutate(na.lakes, long = long - 360)
+
+# Include all of the Americas to begin
+na.map <- map_data(map = "world2")
+na.map <- filter(na.map, region %in% c("Canada", "USA"))
+                               
+na.map <- mutate(na.map, long = long- 360)
+
+# set limits to map based on locations of detections, ensuring they include the
+# deployment locations
+#  These can be set arbitrarily using coordinates from Google Earth
+xmin <- min(df.247.tagDeps$longitude, na.rm = TRUE) - 5 # -120 #
+xmax <- max(df.247.tagDeps$longitude, na.rm = TRUE) + 5 # -116 #
+ymin <- min(df.247.tagDeps$latitude, na.rm = TRUE) - 5 # 35 #
+ymax <- max(df.247.tagDeps$latitude, na.rm = TRUE) + 5 # 37 #
+                
+# map using ggplot
+ggplot(data = na.lakes, aes(x = long, y = lat)) + 
+  geom_polygon(data = na.map, aes(long, lat, group = group), 
+               colour = "grey", fill="grey98") + 
+  geom_polygon(aes(group = group), colour = "grey", fill = "white") +
+  coord_map(projection = "mercator", 
+            xlim = c(xmin, xmax), 
+            ylim = c(ymin, ymax)) +
+  labs(x = "", y = "") + 
+  theme_bw() + 
+  geom_point(data = filter(df.247.tagDeps, projectID == 247), 
+             aes(longitude, latitude), size = 2, shape = 1, colour = "red")
+  # - One tag is deployed way out of range
+
+# 5. determine completeness and accuracy of tag deployment metadata
+  # Range of metadata values
+df.247.tagDeps %>%
+  select(tagID, projectID, tsStart, tsEnd, speciesID, latitude, longitude) %>%
+  summary()
+#  There are 
+#    - two missing tsStart and end dates
+#    - 12 missing species IDs
+#    - 25 missing lat/lons
+#    - deployment start dates are 2019-07-17 to 2021-10-13
+
+  # Check that species IDs are appropriate for your data
+sp.list <- unique(df.247.tagDeps$speciesID)
+tbl.247.species <- tbl(proj.247.sql.motus, "species") 
+tbl.247.species %>%
+  filter(id %in% sp.list) %>%
+  collect() %>%
+  as.data.frame()
+  # just TRBL and YBCU
+
+```
+
+## Reciever Metadata
+
+
+```{r recievermeta}
+library(tidyverse)
+# proj.247.sql.motus <- tagme(247, update = TRUE)
+
+# 1. download full receiver metadata across the network
+# This may have just been run in one of the blocks above (around line 116)
+metadata(proj.247.sql.motus)
+
+# 2. determine number of project receiver deployments
+tbl.247.recvDeps <- tbl(proj.247.sql.motus, "recvDeps")
+df.247.projRecvs <- tbl.247.recvDeps %>%
+  filter(projectID == 247, status == "active") %>%
+  collect() %>%
+  as.data.frame() %>%
+  mutate(tsStart = as_datetime(tsStart, tz = "UTC", origin = "1970-01-01"),
+         tsEnd = as_datetime(tsEnd, tz = "UTC", origin = "1970-01-01"))
+
+summary(df.247.projRecvs)
+# - Lat and lon are reasonable
+# - tsStart ranges from 2019-03-22 to 2021-07-27
+
+  # - Red Tail Hill is no longer missing
+  # - missing elevation
+  # - missing utcoffset
+
+df.247.projRecvs %>%
+  mutate(dateStart = date(tsStart)) %>% 
+  select(-serno,-fixtureType, -macAddress, -tsStart, -tsEnd, -elevation, 
+         -projectID, -status, -receiverType, -siteName) %>%
+  arrange(deviceID, latitude, dateStart)
+
+# 3. determine timing of project receiver deployments
+df.247.projRecvs.long <- df.247.projRecvs %>%
+  select(deviceID, deployID, tsStart, tsEnd) %>% 
+  gather(when, ts, c(tsStart, tsEnd)) %>%
+  # fake end date:
+  mutate(ts = if_else(is.na(ts), max(ts, na.rm = TRUE) + duration(1, "month"), ts)) 
+
+ggplot(data = df.247.projRecvs.long, 
+       aes(x = ts, y = as.factor(deviceID), colour = as.factor(deployID))) +
+  theme(legend.position = "none") +
+  geom_line(lwd = 3) + 
+  # instead, centre to the right
+  geom_text(data = filter(df.247.projRecvs.long, when == "tsStart"), 
+            aes(label = deployID), hjust = "left", nudge_y = 0.2, size = 3, angle = 45) +
+  theme_bw() +
+  labs(x = "Year", y = "Receiver ID")
+
+ggplot(data = df.247.projRecvs.long, 
+       aes(x = yday(ts), y = as.factor(deviceID), colour = as.factor(deployID))) +
+  theme_bw() +
+  theme(legend.position = "none") + 
+  geom_line(lwd = 3) + 
+  # centre labels to the left
+  geom_text(data = filter(df.247.projRecvs.long, when == "tsStart"), 
+            aes(label = deployID), hjust = "left", nudge_y = 0.4, size = 3) +
+  labs(x = "Day of year", y = "Receiver ID") +
+  facet_grid(year(ts) ~ ., scales = "free")
+
+# 4. determine location of network-wide and project receiver deployments
+df.247.recvDeps <- tbl.247.recvDeps %>%
+  collect() %>%
+  as.data.frame() %>%
+  mutate(tsStart = as_datetime(tsStart, tz = "UTC", origin = "1970-01-01"),
+         tsEnd = as_datetime(tsEnd, tz = "UTC", origin = "1970-01-01"))
+
+na.lakes <- map_data(map = "lakes")
+na.lakes <- mutate(na.lakes, long = long - 360)
+
+na.map <- map_data(map = "world2")
+na.map <- filter(na.map, 
+                 region %in% c("Canada", "USA", "Mexico", "lakes", "Belize", 
+                               "Costa Rica", "Panama", "Guatemala", "Honduras", 
+                               "Nicaragua", "El Salvador", "Colombia", "Venezuela", 
+                               "Ecuador", "Peru", "Brazil", "Guyana","Suriname", 
+                               "Bolivia", "French Guiana", "Jamaica", "Cuba", 
+                               "Haiti", "Dominican Republic", "The Bahamas", 
+                               "Turks and Caicos Islands", "Puerto Rico", 
+                               "British Virgin Islands", "Montserrat", "Dominica", 
+                               "Saint Lucia", "Barbados", "Grenada", 
+                               "Trinidad and Tobago", "Chile", "Argentina", 
+                               "Uruguay", "Paraguay")) %>%
+  mutate(long = long - 360)
+
+xmin <- min(df.247.recvDeps$longitude, na.rm = TRUE) - 2
+xmax <- -20 # restrict to the Americas (excluding a few points in Europe)
+ymin <- -60 #min(df.247.recvDeps$longitude, na.rm = TRUE) - 2
+ymax <- max(df.247.recvDeps$latitude, na.rm = TRUE) + 2
+
+ggplot(data = na.lakes, aes(x = long, y = lat)) + 
+  theme_bw() + 
+  geom_polygon(data = na.map, aes(long, lat, group = group), 
+               colour = "grey", fill = "grey98") +
+  geom_polygon(aes(group = group), colour = "grey", fill = "white") +
+  coord_map(projection = "mercator", xlim = c(xmin, xmax), ylim = c(ymin, ymax)) +
+  labs(x = "", y = "") + 
+  geom_point(data = df.247.recvDeps, 
+             aes(longitude, latitude, colour = as.logical(projectID == 247)), 
+             size = 1, shape = 4) +
+  scale_colour_manual(values = c("grey30", "red"), name = "Project 247 Deployment") 
+
+xmin <- min(df.247.projRecvs$longitude, na.rm = TRUE) - 2
+xmax <- max(df.247.projRecvs$longitude, na.rm = TRUE) + 2
+ymin <- min(df.247.projRecvs$latitude, na.rm = TRUE) - 1
+ymax <- max(df.247.projRecvs$latitude, na.rm = TRUE) + 1
+                
+# map
+ggplot(data = na.lakes, aes(x = long, y = lat))+ 
+  theme_bw() + 
+  geom_polygon(data = na.map, aes(long, lat, group = group), 
+               colour = "grey", fill = "grey98") +
+  geom_polygon(aes(group = group), colour = "grey", fill = "white") +
+  coord_map(projection = "mercator", xlim = c(xmin, xmax), ylim = c(ymin, ymax)) +
+  labs(x = "", y = "") +
+  geom_point(data = filter(df.247.projRecvs, 
+                           year(tsStart) %in% 2020:2021, 
+                           !is.na(latitude)),  # remove mobile receivers
+             aes(longitude, latitude, colour = as.factor(deviceID)), size = 2, shape = 1)+
+  scale_colour_discrete(name = "Receiver ID") 
+
+
+# 5. determine completeness and accuracy of receiver metadata
+
+tbl.247.antDeps <- tbl(proj.247.sql.motus, "antDeps") 
+
+df.247.antDeps <- tbl.247.antDeps %>%
+  select(deployID, port, antennaType, bearing, heightMeters) %>%
+  collect() %>%
+  as.data.frame()
+
+# receiver deployments; select variables of interest
+df.247.ant.recvDeps <- df.247.recvDeps %>%
+  select(deployID, receiverType, deviceID, name, latitude, longitude, 
+         isMobile, tsStart, tsEnd, projectID, elevation) 
+
+df.stationDeps <- left_join(df.247.ant.recvDeps, df.247.antDeps, by = "deployID")
+
+# Filter to just our project if needed
+df.247.stationDeps <- filter(df.stationDeps, projectID == 247)
+
+summary(df.stationDeps)
+summary(df.247.stationDeps)
+# Our station deployments seem reasonable
+# Current deployments
+#  Red Tail Hill 2020-10-02
+#  Long Canyon   2020-10-21
+#  Canebrake     2021-07-27
+
+```
+
+
+## Data cleaning
+
+```{r cleaning}
+Sys.setenv(tz = "UTC")
+
+library(motus)
+library(tidyverse)
+library(lubridate)
+
+# Kern River Valley Tri-colored Blackbird Study
+# proj.num = 247 
+
+# proj.247.sql.motus <- tagme(247, update = F)
+
+# tbl(proj.247.sql.motus, "alltags") %>% # This brings data in from local database
+df.alltags.247.01_22 %>% # This uses the local copy created above
+  filter(tagProjID == 247) %>% # subset to include only tags registered to project
+  count(motusTagDepID) %>%
+  as.data.frame()
+
+# tbl(proj.247.sql.motus, "alltags") %>% # This brings data in from local database
+df.alltags.247.01_22 %>% # This uses the local copy created above
+  filter(tagProjID == 247) %>% # subset to include only tags registered to project
+  mutate(rl.gt.3 = if_else(runLen == 3, "run 3", "run > 3")) %>%
+  count(motusTagDepID, rl.gt.3) %>%
+  collect() %>%
+  spread(key = rl.gt.3, value = n)
+# - large numbers have NA for deployment ID
+# - some of these have very large numbers of short runs
+
+filter(tbl(proj.247.sql.motus, "alltags"), runLen <= 3) %>% 
+  collect() %>% 
+  nrow()
+# - over 303,000 short runs
+
+to_remove <- tbl(proj.247.sql.motus, "runs") %>%
+  select(runID, motusFilter) %>%
+  filter(motusFilter == 0)
+tbl_filtered <- anti_join(tbl(proj.247.sql.motus, "alltags"), to_remove, by = "runID")
+
+filter(tbl_filtered, runLen <= 3) %>% 
+  collect() %>% 
+  nrow()
+# 9197 rows have runLen <=3
+
+tbl.247.filtered.alltags <- filterByActivity(proj.247.sql.motus, return = "all")
+
+# Filter out the 9197 rows of short run records
+
+# getGPS expects ts to not be transformed, I think, so commenting out last part
+df.247.alltags.sub <- tbl.247.filtered.alltags %>% 
+  filter(probability == 1) %>%
+  collect() %>%
+  as.data.frame() #%>%
+  # mutate(ts = as_datetime(ts),  # work with dates AFTER transforming to flat file
+  #        tagDeployStart = as_datetime(tagDeployStart),
+  #        tagDeployEnd = as_datetime(tagDeployEnd))
+
+df.247.block.0 <- filter(tbl.247.filtered.alltags, probability == 0) %>%
+  select(motusTagID, runID) %>%
+  distinct() %>%
+  collect() %>%
+  data.frame()
+
+# Get GPS data
+# Retrieve GPS data for each hitID
+# This failed with an error
+#  When you use `by = 'closest'`
+# Error: Problem with `mutate()` column `gpsID`.
+# i `gpsID = purrr::map_int(...)`.
+# x can only subtract from "POSIXt" objects
+# Run `rlang::last_error()` to see where the error occurred.
+#  when you use `by = 'daily'`, which I think I used before
+# Error: Problem with `mutate()` column `timeBin`.
+# i `timeBin = as.integer(.data$ts/by)`.
+# x '/' not defined for "POSIXt" objects
+# Run `rlang::last_error()` to see where the error occurred.
+# This error is due to not running the step above that transforms ts into dateTime
+
+# Use only one of the options below, in order of likely speed
+gps_index.247 <- getGPS(proj.247.sql.motus, data = df.247.alltags.sub, by = "daily")
+gps_index.247 <- getGPS(proj.247.sql.motus, data = df.247.alltags.sub, by = "closest", cutoff = 20)
+gps_index.247 <- getGPS(proj.247.sql.motus, data = df.247.alltags.sub, by = 15)
+
+
+# Merge GPS points in with our data
+df.alltags.247.sub <- left_join(df.247.alltags.sub, gps_index.247, by = "hitID")
+
+filter(df.alltags.247.sub, is.na(gpsLat)) %>% 
+  collect() %>% 
+  nrow()
+filter(df.alltags.247.sub, is.na(gpsLat) & is.na(recvDeployLat)) %>% 
+  collect() %>% 
+  nrow()
+filter(df.alltags.247.sub, is.na(0)) %>% 
+  collect() %>% 
+  nrow()
+filter(df.alltags.247.sub, is.na(999)) %>% 
+  collect() %>% 
+  nrow()
+
+df.alltags.247.sub.2 <- df.alltags.247.sub %>% 
+  mutate(recvLat = if_else((is.na(gpsLat)|gpsLat == 0|gpsLat == 999), 
+                           recvDeployLat, gpsLat),
+         recvLon = if_else((is.na(gpsLon)|gpsLon == 0|gpsLon == 999), 
+                           recvDeployLon, gpsLon),
+         recvAlt = if_else(is.na(gpsAlt), recvDeployAlt, gpsAlt)) %>%
+  select(-noise, -slop, -burstSlop, -done, -bootnum, -mfgID, 
+         -codeSet, -mfg, -nomFreq, -markerNumber, -markerType, 
+         -tagDepComments, -fullID, -deviceID, -recvDeployLat, 
+         -recvDeployLon, -recvDeployAlt, -speciesGroup, -gpsLat, 
+         -gpsLon, -recvAlt, -recvSiteName) %>%
+  mutate(recvLat = plyr::round_any(recvLat, 0.05), 
+         recvLon = plyr::round_any(recvLon, 0.05),
+         recvDeployName = if_else(is.na(recvDeployName), 
+                                  paste(recvLat, recvLon, sep=":"), 
+                                  recvDeployName))
+
+df.alltags.247.sub.2 %>%
+  filter(is.na(recvLat)) %>%
+  select(recvLat, recvLon, recvDeployName, recvDeployID, recv, 
+         recvProjID, recvProjName) %>%
+  distinct()
+# None missing on 2022-01-19
+
+fun.getpath <- function(df, pr.nm = 247) {
+  df %>%
+    filter(tagProjID == pr.nm, # keep only tags registered to the sample project
+           !is.na(recvLat) | !(recvLat == 0)) %>% # drops data without lon/lat
+    group_by(motusTagID, runID, recvDeployName, ambigID, 
+             tagDepLon, tagDepLat, recvLat, recvLon) %>%
+    #summarizing by runID to get max run length and mean time stamp:
+    summarize(max.runLen = max(runLen), ts.h = mean(lubridate::as_datetime(ts))) %>% 
+    arrange(motusTagID, ts.h)
+} # end of function
+
+df.alltags.247.path <- fun.getpath(df.alltags.247.sub.2)
+
+df.alltags.247.path %>%
+  select(tagDepLon, tagDepLat, recvLat, recvLon, max.runLen, ts.h) %>%
+  summary()
+
+
+tags_all = unique(df.alltags.247.path$motusTagID)
+length(unique(df.alltags.247.path$motusTagID))/6
+
+tagset1 = tags_all[1:6]
+tagset2 = tags_all[7:12]
+tagset3 = tags_all[13:18]
+tagset4 = tags_all[19:24]
+tagset5 = tags_all[25:30]
+tagset6 = tags_all[31:36]
+tagset7 = tags_all[37:42]
+tagset8 = tags_all[43:48]
+tagset9 = tags_all[49:54]
+tagset10 = tags_all[55:60]
+tagset11 = tags_all[61:66]
+tagset12 = tags_all[67:72]
+tagset13 = tags_all[73:75]
+
+fun.plot_path = function(path, tagset) {
+  ggplot(data = filter(path, 
+                     motusTagID %in% tagset), 
+       aes(x = ts.h, y = recvLat)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + 
+  geom_point() + 
+  geom_path() +
+  facet_wrap(~ motusTagID, scales = "free", ncol = 2)
+}
+
+fun.plot_path(df.alltags.247.path, tagset1)
+fun.plot_path(df.alltags.247.path, tagset2)
+fun.plot_path(df.alltags.247.path, tagset3)
+fun.plot_path(df.alltags.247.path, tagset4)
+fun.plot_path(df.alltags.247.path, tagset5)
+fun.plot_path(df.alltags.247.path, tagset6)
+fun.plot_path(df.alltags.247.path, tagset7)
+fun.plot_path(df.alltags.247.path, tagset8)
+fun.plot_path(df.alltags.247.path, tagset9)
+fun.plot_path(df.alltags.247.path, tagset10)
+fun.plot_path(df.alltags.247.path, tagset11)
+fun.plot_path(df.alltags.247.path, tagset12)
+fun.plot_path(df.alltags.247.path, tagset13)
+
+
+
 ```
 
