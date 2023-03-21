@@ -21,7 +21,8 @@ library(dplyr)
 Sys.setenv(TZ = "UTC")
 
 # Kern River Valley Tri-colored Blackbird Study
-# Stopped using this to make things more clear and eliminate mismatches
+# Renamed to Southern Sierra Research Station Kern River Project
+# Stopped using old name to make things more clear and eliminate mismatches
 # proj.num = 247 
 
 # rth, canebrake, migrant corner, 
@@ -84,6 +85,42 @@ metadata(proj.247.sql.motus, projectIDs = 247)
 
 motusLogout()
 ```
+
+## Download one receiver to look at one tag
+
+```{r rectag}
+library(motus)
+library(lubridate)
+library(dplyr)
+Sys.setenv(TZ = "UTC")
+
+# Migrant corner
+# rec_id =  "CTT-1F618DF06116"
+# Red tail Hill (RTH)
+rec_id =  "CTT-957865AC5BF7"
+
+
+# *** First time only ***
+# This can take a long time
+# rec.motus = tagme(rec_id, new=TRUE, update = T)
+
+# To update the .motus SQLite file, use this
+# rec.motus = tagme(rec_id, new=F, update = T)
+
+# To just connect and use the current .motus SQLite files use this
+rec.motus = tagme(rec_id, new=F, update = F)
+
+# Get link to table
+tbl.alltags <- tbl(rec.motus, "alltags")
+# Bring data in from .motus file as data.frame and fix datetime
+df.alltags <- tbl.alltags %>% 
+  collect() %>% 
+  as.data.frame() %>%     # for all fields in the df (data frame)
+  mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"))
+
+motusLogout()
+```
+
 
 ## Accessing tables
 
@@ -419,7 +456,7 @@ library(lubridate)
 # proj.247.sql.motus <- tagme(247, update = F)
 
 # tbl(proj.247.sql.motus, "alltags") %>% # This brings data in from local database
-df.alltags.247.01_22 %>% # This uses the local copy created above
+df.alltags.247.03_21 %>% # This uses the local copy created above
   filter(tagProjID == 247) %>% # subset to include only tags registered to project
   count(motusTagDepID) %>%
   as.data.frame()
@@ -593,3 +630,61 @@ fun.plot_path(df.alltags.247.path, tagset13)
 
 ```
 
+
+### Signal Strength Plots
+
+Have a look at detection data colored by antenna direction.  NA usually is for an omni.
+
+```{r sig} 
+library(lubridate)
+library(ggplot2)
+# tag_motus_id = 56747 # Cowbird tag
+
+# Filter down to test tag and times of test
+# *** This will fail if gps and station are not both using UTC ***
+# Should/can we add a way to correct times, if needed?
+# Could add multiple tags to the filter here and color by them later
+# Filter by a time range created like above
+# (time_range = range(points@data$timestamp))
+# Whole time
+(time_range = c("2022-07-02", "2023-03-21"))
+# Cookie
+# tag_motus_id = 65544 # YBCU Cookie
+(time_range = c("2022-07-02", "2022-07-17"))
+#  Short time on >1 antenna Migrant corner
+(time_range = c("2022-07-07", "2022-07-09"))
+#  Short time on >1 antenna RTH
+(time_range = c("2022-07-13", "2022-07-14"))
+# tag_motus_id = 69554 # YBCU Cookie (2nd tag)
+(time_range = c("2022-08-05", "2022-08-17"))
+# tag_motus_id = 65557 # YBCU Stroopwafel
+(time_range = c("2022-07-05", "2022-07-23"))
+(time_range = c("2022-07-17", "2022-07-23"))
+# tag_motus_id = 56746 # YBCU Stroopwafel (2nd tag)
+(time_range = c("2022-08-03", "2022-08-09"))
+# tag_motus_id = 56726 # YBCU Snickerdoodle
+(time_range = c("2022-07-23", "2022-08-15"))
+(time_range = c("2022-08-12", "2022-08-14"))
+
+
+df.rec_tags = df.alltags %>%
+  filter(motusTagID == tag_motus_id,
+         ts >= time_range[1],
+         ts <= time_range[2])
+(time_range = range(df.rec_tags$ts))
+# Create scaling factor for later (between 0-1)
+df.rec_tags$sig_scaled = (df.rec_tags$sig
+  - max(df.rec_tags$sig)) / 
+  (max(df.rec_tags$sig) - min(df.rec_tags$sig))
+
+rec_tags.sig  = df.rec_tags %>% 
+  ggplot(aes(x = ts, y = sig, col = as.factor(antBearing))) +
+  theme_bw() + 
+  geom_point() + 
+  labs(x = "Time of day", y = "Signal strength",
+       title = "Snickerdoodle (56726)") +
+  scale_color_discrete(name = "Antenna bearing") +
+  facet_grid(recvDeployName ~ .)
+rec_tags.sig
+
+```
