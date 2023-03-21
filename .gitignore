@@ -48,4 +48,6 @@ vignettes/*.pdf
 # Exported data
 *.rds
 *.zip
+*.csv
+
 
