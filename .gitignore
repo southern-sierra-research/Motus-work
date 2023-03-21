@@ -40,3 +40,12 @@ vignettes/*.pdf
 
 # Motus databases
 *.motus
+
+# Files for plots
+*.pdf
+*.jpg
+
+# Exported data
+*.rds
+*.zip
+
