@@ -95,10 +95,19 @@ library(dplyr)
 Sys.setenv(TZ = "UTC")
 
 # Migrant corner
-# rec_id =  "CTT-1F618DF06116"
+rec_id_migrantcorner =  "CTT-1F618DF06116"
 # Red tail Hill (RTH)
-rec_id =  "CTT-957865AC5BF7"
+rec_id_redtailhill =  "CTT-957865AC5BF7"
+# Canebrake
+rec_id_canebrake = "CTT-27532C924059"
+# MDLT
+# Tunnel Spring
+rec_id_tunnel = "CTT-85E9238B9814"
+# Frog Spring
+rec_id_frog = "CTT-7406F10DF482"
 
+# Change this
+rec_id = rec_id_frog
 
 # *** First time only ***
 # This can take a long time
@@ -638,31 +647,118 @@ Have a look at detection data colored by antenna direction.  NA usually is for a
 ```{r sig} 
 library(lubridate)
 library(ggplot2)
+
+# Set which stations data to use
+# Migrant corner
+rec_id_migrantcorner =  "CTT-1F618DF06116"
+# Red tail Hill (RTH)
+rec_id_redtailhill =  "CTT-957865AC5BF7"
+# Canebrake
+rec_id_canebrake = "CTT-27532C924059"
+# MDLT
+# Tunnel Spring
+rec_id_tunnel = "CTT-85E9238B9814"
+# Frog Spring
+rec_id_frog = "CTT-7406F10DF482"
+
+# Just connect and use the current .motus SQLite files created or updated above (around line 108)
+rec.motus_migcor = tagme(rec_id_migrantcorner, new=F, update = F)
+rec.motus_rth = tagme(rec_id_redtailhill, new=F, update = F)
+rec.motus_cane = tagme(rec_id_canebrake, new=F, update = F)
+rec.motus_tunl = tagme(rec_id_tunnel, new=F, update = F)
+rec.motus_frog = tagme(rec_id_frog, new=F, update = F)
+
+# Get link to table
+tbl.alltags_migcor <- tbl(rec.motus_migcor, "alltags")
+tbl.alltags_rth <- tbl(rec.motus_rth, "alltags")
+tbl.alltags_cane <- tbl(rec.motus_cane, "alltags")
+tbl.alltags_tunl <- tbl(rec.motus_tunl, "alltags")
+tbl.alltags_frog <- tbl(rec.motus_frog, "alltags")
+# Bring data in from .motus file as data.frame and fix datetime
+df.alltags_migcor <- tbl.alltags_migcor %>% 
+  collect() %>% 
+  as.data.frame() %>%     # for all fields in the df (data frame)
+  mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"))
+
+df.alltags_rth <- tbl.alltags_rth %>% 
+  collect() %>% 
+  as.data.frame() %>%     # for all fields in the df (data frame)
+  mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"))
+
+df.alltags_cane <- tbl.alltags_cane %>% 
+  collect() %>% 
+  as.data.frame() %>%     # for all fields in the df (data frame)
+  mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"))
+
+df.alltags_tunl <- tbl.alltags_tunl %>% 
+  collect() %>% 
+  as.data.frame() %>%     # for all fields in the df (data frame)
+  mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"))
+
+df.alltags_frog <- tbl.alltags_frog %>% 
+  collect() %>% 
+  as.data.frame() %>%     # for all fields in the df (data frame)
+  mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"))
+
+# Change these for each run to combine dataframes for plotting on one timeline
+# YBCUs
+df.alltags = rbind(df.alltags_migcor, df.alltags_rth)
+# Western Sandpiper 2022
+df.alltags = rbind(df.alltags_migcor, 
+                   df.alltags_tunl, 
+                   df.alltags_frog)
+(range(df.alltags$ts))
+which(is.na(df.alltags$ts))
+
+
 # tag_motus_id = 56747 # Cowbird tag
 
-# Filter down to test tag and times of test
+# Filter down to tag detection time range
 # *** This will fail if gps and station are not both using UTC ***
 # Should/can we add a way to correct times, if needed?
 # Could add multiple tags to the filter here and color by them later
 # Filter by a time range created like above
 # (time_range = range(points@data$timestamp))
-# Whole time
-(time_range = c("2022-07-02", "2023-03-21"))
+# Whole time range. Determined from running filter step below and finding range
+(time_range = c("2021-12-01", "2023-03-28"))
+
+# YBCU tags detected by SSRS stations
 # Cookie
-# tag_motus_id = 65544 # YBCU Cookie
+tag_motus_id = 65544 
+tag = "Cookie (65544)"
 (time_range = c("2022-07-02", "2022-07-17"))
-#  Short time on >1 antenna Migrant corner
-(time_range = c("2022-07-07", "2022-07-09"))
-#  Short time on >1 antenna RTH
+#  Short time on >1 antenna
 (time_range = c("2022-07-13", "2022-07-14"))
-# tag_motus_id = 69554 # YBCU Cookie (2nd tag)
+
+tag_motus_id = 69554 
+tag = "Cookie (2nd tag: 69554)"
 (time_range = c("2022-08-05", "2022-08-17"))
-# tag_motus_id = 65557 # YBCU Stroopwafel
+
+tag_motus_id = 65557
+tag = "Stroopwafel (65557)"
 (time_range = c("2022-07-05", "2022-07-23"))
 (time_range = c("2022-07-17", "2022-07-23"))
-# tag_motus_id = 56746 # YBCU Stroopwafel (2nd tag)
+
+tag_motus_id = 56746
+tag = "YBCU Stroopwafel (2nd tag: 56746)"
 (time_range = c("2022-08-03", "2022-08-09"))
-# tag_motus_id = 56726 # YBCU Snickerdoodle
+
+tag_motus_id = 56726
+tag = "Snickerdoodle (56726)"
+(time_range = c("2022-07-23", "2022-08-15"))
+(time_range = c("2022-08-12", "2022-08-14"))
+
+# WESA tag detected locally from Pacific Shorebirds#86:13 M.64337
+tag_motus_id = 64337
+tag = "Western Sandpiper (64337)"
+# change these
+(time_range = c("2022-07-25", "2022-07-27"))
+(time_range = c("2022-08-12", "2022-08-14"))
+
+# TRBL tags detected locally from SSRS Kern River#261:13.1 M.54819
+tag_motus_id = 54819
+tag = "Tricolored Blackbird (54819)"
+# change these
 (time_range = c("2022-07-23", "2022-08-15"))
 (time_range = c("2022-08-12", "2022-08-14"))
 
@@ -682,9 +778,29 @@ rec_tags.sig  = df.rec_tags %>%
   theme_bw() + 
   geom_point() + 
   labs(x = "Time of day", y = "Signal strength",
-       title = "Snickerdoodle (56726)") +
+       title = tag) +
   scale_color_discrete(name = "Antenna bearing") +
   facet_grid(recvDeployName ~ .)
 rec_tags.sig
+
+ggsave(filename = paste(
+  "WESA", tag,
+  as.character(as.Date(time_range[1])),
+  "to",
+  as.character(as.Date(time_range[2])),
+  ".pdf", sep = "_"),
+  device = "pdf",
+  width = 8, height = 5,
+  units = "in")
+
+ggsave(filename = paste(
+  "WESA", tag,
+  as.character(as.Date(time_range[1])),
+  "to",
+  as.character(as.Date(time_range[2])),
+  ".jpg", sep = "_"),
+  device = "jpg",
+  width = 8, height = 5,
+  units = "in")
 
 ```
