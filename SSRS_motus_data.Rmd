@@ -705,8 +705,14 @@ df.alltags_frog <- tbl.alltags_frog %>%
 df.alltags = rbind(df.alltags_migcor, df.alltags_rth)
 # Western Sandpiper 2022
 df.alltags = rbind(df.alltags_migcor, 
+                   df.alltags_rth,
                    df.alltags_tunl, 
                    df.alltags_frog)
+# Tricolored Blackbird 2022
+df.alltags = rbind(df.alltags_rth,
+                   df.alltags_cane)
+
+
 (range(df.alltags$ts))
 which(is.na(df.alltags$ts))
 
@@ -753,14 +759,19 @@ tag_motus_id = 64337
 tag = "Western Sandpiper (64337)"
 # change these
 (time_range = c("2022-07-25", "2022-07-27"))
-(time_range = c("2022-08-12", "2022-08-14"))
 
 # TRBL tags detected locally from SSRS Kern River#261:13.1 M.54819
 tag_motus_id = 54819
 tag = "Tricolored Blackbird (54819)"
 # change these
-(time_range = c("2022-07-23", "2022-08-15"))
-(time_range = c("2022-08-12", "2022-08-14"))
+(time_range = c("2022-04-08", "2022-11-10"))
+(time_range = c("2022-04-08", "2022-05-21"))
+# Foraging
+(time_range = c("2022-05-17", "2022-05-18"))
+# Roosting
+(time_range = c("2022-09-11", "2022-09-13"))
+(time_range = c("2022-09-11", "2022-09-28"))
+
 
 
 df.rec_tags = df.alltags %>%
@@ -777,14 +788,14 @@ rec_tags.sig  = df.rec_tags %>%
   ggplot(aes(x = ts, y = sig, col = as.factor(antBearing))) +
   theme_bw() + 
   geom_point() + 
-  labs(x = "Time of day", y = "Signal strength",
+  labs(x = "Time of day (UTC)", y = "Signal strength",
        title = tag) +
   scale_color_discrete(name = "Antenna bearing") +
   facet_grid(recvDeployName ~ .)
 rec_tags.sig
 
 ggsave(filename = paste(
-  "WESA", tag,
+  "TRBL", tag,
   as.character(as.Date(time_range[1])),
   "to",
   as.character(as.Date(time_range[2])),
@@ -794,7 +805,7 @@ ggsave(filename = paste(
   units = "in")
 
 ggsave(filename = paste(
-  "WESA", tag,
+  "TRBL", tag,
   as.character(as.Date(time_range[1])),
   "to",
   as.character(as.Date(time_range[2])),
