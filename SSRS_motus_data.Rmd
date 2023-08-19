@@ -15,6 +15,9 @@ https://beta.motus.org/MotusRBook/
 
 
 ```{r setup}
+# install.packages("motus", 
+#                  repos = c(birdscanada = 'https://birdscanada.r-universe.dev',
+#                            CRAN = 'https://cloud.r-project.org'))
 library(motus)
 library(lubridate)
 library(dplyr)
@@ -27,8 +30,11 @@ Sys.setenv(TZ = "UTC")
 
 # rth, canebrake, migrant corner, 
 # frog spring, tunnel spring, freeman canyon spring
+# upper caliente creek
+
 df.247.serno = c("CTT-957865AC5BF7", "CTT-27532C924059", "CTT-1F618DF06116", 
-                 "CTT-7406F10DF482", "CTT-85E9238B9814","CTT-89E107C9320E")
+                 "CTT-7406F10DF482", "CTT-85E9238B9814","CTT-89E107C9320E",
+                 "CTT-3A2F497F6F83")
 # Uninstalled "CTT-C0612F7F986B",
 
 # Project
@@ -44,6 +50,8 @@ motusLogout()
 
 You can update individual sql files or all at once.
 
+I have stopped updating the project or all at once.
+
 ```{r update}
 # Project
 ## Update existing project from motus database
@@ -51,7 +59,8 @@ proj.247.sql.motus <- tagme(projRecv = 247, new = FALSE, update = TRUE)
 
 # Kern River Valley Tri-colored Blackbird Study
 rec.247.names = paste0(c("rth", "canebrake", "migrant corner", 
-                         "frog spring", "tunnel spring", "freeman canyon spring"), 
+                         "frog spring", "tunnel spring", 
+                         "freeman canyon spring", "upper caliente creek"), 
                        ".sql.motus")
 
 # Individually
@@ -63,6 +72,7 @@ rec.247.names[3] <- tagme(projRecv = df.247.serno[3], new = TRUE, update = TRUE)
 rec.247.names[4] <- tagme(projRecv = df.247.serno[4], new = TRUE, update = TRUE)
 rec.247.names[5] <- tagme(projRecv = df.247.serno[5], new = TRUE, update = TRUE)
 rec.247.names[6] <- tagme(projRecv = df.247.serno[6], new = TRUE, update = TRUE)
+rec.247.names[7] <- tagme(projRecv = df.247.serno[7], new = TRUE, update = TRUE)
 
 # All at once with variable assignment so it is comparable to the individual way
 # SSRS
@@ -76,7 +86,7 @@ for (k in 1:length(df.247.serno)) {
 # }
 
 # All at once for all of your projects
-### Beware this will take a really long tims
+### Beware this will take a really long time
 # tagme()
 
 # This will get data on all projects and receiver deployments
@@ -89,6 +99,9 @@ motusLogout()
 ## Download one receiver to look at one tag
 
 ```{r rectag}
+# install.packages("motus", 
+#                  repos = c(birdscanada = 'https://birdscanada.r-universe.dev',
+#                            CRAN = 'https://cloud.r-project.org'))
 library(motus)
 library(lubridate)
 library(dplyr)
@@ -105,9 +118,19 @@ rec_id_canebrake = "CTT-27532C924059"
 rec_id_tunnel = "CTT-85E9238B9814"
 # Frog Spring
 rec_id_frog = "CTT-7406F10DF482"
+# Freeman Canyon Spring
+rec_id_freeman = "CTT-89E107C9320E"
+# Upper Caliente Creek
+rec_id_caliente = "CTT-3A2F497F6F83"
 
 # Change this
-rec_id = rec_id_frog
+# rec_id = rec_id_migrantcorner
+# rec_id = rec_id_redtailhill
+# rec_id = rec_id_tunnel
+# rec_id = rec_id_frog
+# rec_id = rec_id_canebrake
+  # rec_id = rec_id_freeman
+  rec_id = rec_id_caliente
 
 # *** First time only ***
 # This can take a long time
@@ -117,7 +140,7 @@ rec_id = rec_id_frog
 # rec.motus = tagme(rec_id, new=F, update = T)
 
 # To just connect and use the current .motus SQLite files use this
-rec.motus = tagme(rec_id, new=F, update = F)
+# rec.motus = tagme(rec_id, new=F, update = F)
 
 # Get link to table
 tbl.alltags <- tbl(rec.motus, "alltags")
@@ -667,6 +690,8 @@ rec.motus_rth = tagme(rec_id_redtailhill, new=F, update = F)
 rec.motus_cane = tagme(rec_id_canebrake, new=F, update = F)
 rec.motus_tunl = tagme(rec_id_tunnel, new=F, update = F)
 rec.motus_frog = tagme(rec_id_frog, new=F, update = F)
+rec.motus_freeman = tagme(rec_id_freeman, new=F, update = F)
+rec.motus_caliente = tagme(rec_id_caliente, new=F, update = F)
 
 # Get link to table
 tbl.alltags_migcor <- tbl(rec.motus_migcor, "alltags")
@@ -674,6 +699,9 @@ tbl.alltags_rth <- tbl(rec.motus_rth, "alltags")
 tbl.alltags_cane <- tbl(rec.motus_cane, "alltags")
 tbl.alltags_tunl <- tbl(rec.motus_tunl, "alltags")
 tbl.alltags_frog <- tbl(rec.motus_frog, "alltags")
+tbl.alltags_frmn <- tbl(rec.motus_freeman, "alltags")
+tbl.alltags_clnt <- tbl(rec.motus_caliente, "alltags")
+
 # Bring data in from .motus file as data.frame and fix datetime
 df.alltags_migcor <- tbl.alltags_migcor %>% 
   collect() %>% 
@@ -700,14 +728,33 @@ df.alltags_frog <- tbl.alltags_frog %>%
   as.data.frame() %>%     # for all fields in the df (data frame)
   mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"))
 
+df.alltags_frmn <- tbl.alltags_frmn %>% 
+  collect() %>% 
+  as.data.frame() %>%     # for all fields in the df (data frame)
+  mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"))
+
+df.alltags_clnt <- tbl.alltags_clnt %>% 
+  collect() %>% 
+  as.data.frame() %>%     # for all fields in the df (data frame)
+  mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"))
+
 # Change these for each run to combine dataframes for plotting on one timeline
 # YBCUs
-df.alltags = rbind(df.alltags_migcor, df.alltags_rth)
+df.alltags = rbind(df.alltags_migcor, 
+                   df.alltags_rth)
+
 # Western Sandpiper 2022
 df.alltags = rbind(df.alltags_migcor, 
                    df.alltags_rth,
                    df.alltags_tunl, 
                    df.alltags_frog)
+
+# Red Knot 2023
+df.alltags = rbind(df.alltags_clnt)
+
+# Hoary Bat 2023
+df.alltags = df.alltags_frmn
+
 # Tricolored Blackbird 2022
 df.alltags = rbind(df.alltags_rth,
                    df.alltags_cane)
@@ -726,7 +773,7 @@ which(is.na(df.alltags$ts))
 # Filter by a time range created like above
 # (time_range = range(points@data$timestamp))
 # Whole time range. Determined from running filter step below and finding range
-(time_range = c("2021-12-01", "2023-03-28"))
+(time_range = c("2023-07-02", "2023-07-28"))
 
 # YBCU tags detected by SSRS stations
 # Cookie
@@ -737,7 +784,7 @@ tag = "Cookie (65544)"
 (time_range = c("2022-07-13", "2022-07-14"))
 
 tag_motus_id = 69554 
-tag = "Cookie (2nd tag: 69554)"
+tag = "Cookie (2nd tag 69554)"
 (time_range = c("2022-08-05", "2022-08-17"))
 
 tag_motus_id = 65557
@@ -746,19 +793,42 @@ tag = "Stroopwafel (65557)"
 (time_range = c("2022-07-17", "2022-07-23"))
 
 tag_motus_id = 56746
-tag = "YBCU Stroopwafel (2nd tag: 56746)"
+tag = "YBCU Stroopwafel (2nd tag 56746)"
 (time_range = c("2022-08-03", "2022-08-09"))
+(time_range = c("2023-07-02", "2023-07-28"))
 
 tag_motus_id = 56726
 tag = "Snickerdoodle (56726)"
 (time_range = c("2022-07-23", "2022-08-15"))
 (time_range = c("2022-08-12", "2022-08-14"))
 
+tag_motus_id = 56726
+tag = "Snickerdoodle (56726)"
+(time_range = c("2022-07-23", "2022-08-15"))
+
+tag_motus_id = 60762
+tag = "Hummus (60762)"
+(time_range = c("2023-07-20", "2023-07-28"))
+
 # WESA tag detected locally from Pacific Shorebirds#86:13 M.64337
 tag_motus_id = 64337
 tag = "Western Sandpiper (64337)"
 # change these
 (time_range = c("2022-07-25", "2022-07-27"))
+
+# REKN tag detected locally from NW Mexico project M.64960 and  M.60092
+tag_motus_id = 64960
+tag = "Red Knot (64960)"
+(time_range = c("2023-05-11", "2023-05-13"))
+
+tag_motus_id = 60092
+tag = "Red Knot (60092)"
+(time_range = c("2023-05-26", "2023-05-28"))
+
+# Hoary bat tag detected locally from CDFW motus tagged in Marin county
+tag_motus_id = 70412
+tag = "Hoary Bat (70412)"
+(time_range = c("2023-04-21", "2023-04-24"))
 
 # TRBL tags detected locally from SSRS Kern River#261:13.1 M.54819
 tag_motus_id = 54819
@@ -772,8 +842,7 @@ tag = "Tricolored Blackbird (54819)"
 (time_range = c("2022-09-11", "2022-09-13"))
 (time_range = c("2022-09-11", "2022-09-28"))
 
-
-
+# Run from here for plots
 df.rec_tags = df.alltags %>%
   filter(motusTagID == tag_motus_id,
          ts >= time_range[1],
@@ -785,7 +854,9 @@ df.rec_tags$sig_scaled = (df.rec_tags$sig
   (max(df.rec_tags$sig) - min(df.rec_tags$sig))
 
 rec_tags.sig  = df.rec_tags %>% 
-  ggplot(aes(x = ts, y = sig, col = as.factor(antBearing))) +
+  ggplot(aes(x = ts, y = sig, col = as.factor(paste(recvDeployName,
+                                                    antBearing, 
+                                                    sep = "-")))) +
   theme_bw() + 
   geom_point() + 
   labs(x = "Time of day (UTC)", y = "Signal strength",
@@ -795,7 +866,7 @@ rec_tags.sig  = df.rec_tags %>%
 rec_tags.sig
 
 ggsave(filename = paste(
-  "TRBL", tag,
+  "Hoary_bat", tag,
   as.character(as.Date(time_range[1])),
   "to",
   as.character(as.Date(time_range[2])),
@@ -805,7 +876,7 @@ ggsave(filename = paste(
   units = "in")
 
 ggsave(filename = paste(
-  "TRBL", tag,
+  "Hoary_bat", tag,
   as.character(as.Date(time_range[1])),
   "to",
   as.character(as.Date(time_range[2])),
@@ -815,3 +886,91 @@ ggsave(filename = paste(
   units = "in")
 
 ```
+
+
+## Node data
+
+### Cuckoos
+
+Run code above to get df.rec_tags for a bird, then come back here and run this.
+
+```{r nodes}
+library(readr)
+test_ybcu_nodes <- read_csv("test_ybcu_nodes.csv")
+
+# Node detections
+
+table(test_ybcu_nodes$nodeNum)
+
+ybcu_nodes = test_ybcu_nodes %>%
+  mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"), 
+         tsCorrected = as_datetime(tsCorrected, tz = "UTC", origin = "1970-01-01"),
+         BirdTag = case_when(motusTagID == 65544 ~ "Cookie (65544)",
+                             motusTagID == 65557 ~ "Stroopwafel (65557)",
+                             motusTagID == 56726 ~ "Snickerdoodle (56726)"))
+```
+
+
+## Leaflet map to examine data
+
+
+```{r mapnodes}
+# install.packages("leaflet.extras2", "geojsonsf")
+library(tidyverse)
+library(leaflet)
+library(leaflet.extras2)
+library(sf)
+library(geojsonsf)
+library(plotrix)
+library(htmlwidgets)
+
+node_max = ybcu_nodes %>%
+  mutate(day = floor_date(ts, 'day'),
+         hour = hour(ts)) %>%
+  group_by(motusTagID, day, hour) %>%
+  slice(which.max(sig))
+
+
+node_max_sf = st_as_sf(node_max, coords = c("node_Lon", "node_Lat"))
+
+node_max_sf = st_jitter(node_max_sf, amount = 0.0002)
+
+pal <- colorFactor(
+  palette = "magma",
+  domain = node_max_sf$BirdTag,
+  na.color = "#737373")
+
+m = leaflet(node_max_sf) %>%
+  addTiles(group = "OSM (default)") %>%
+  addProviderTiles('Esri.WorldImagery',group = "Esri World Imagery") %>%
+  addCircleMarkers(color = pal(node_max_sf$BirdTag),
+                   popup =
+                     as.character(node_max_sf$BirdTag)) %>%
+  addLayersControl(
+        baseGroups = c("OSM (default)", "Esri World Imagery"),
+        position = "bottomright",
+        options = layersControlOptions(collapsed = TRUE)) %>%
+  addLegend(pal = pal, values = node_max_sf$BirdTag,
+            position = "bottomright") %>%
+  addScaleBar(
+    position = c("bottomleft"),
+    options = scaleBarOptions()
+  ) %>%
+    addTimeslider(data = node_max_sf, 
+                  options = timesliderOptions(
+               position = "bottomleft",
+               timeAttribute = "ts",
+               range = TRUE))
+
+
+m
+
+saveWidget(m, file = 
+             # paste(df.rec_tags$recvSiteName[1], 
+             paste(df.rec_tags$recvDeployName[1], 
+                   as.character(tag_motus_id), 
+                   as.character(as.Date(df.rec_tags$ts[1])),
+                   "html", 
+                   sep = "."))
+```
+
