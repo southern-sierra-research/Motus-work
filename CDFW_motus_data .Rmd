@@ -1,0 +1,701 @@
+---
+title: "CDFW_motus_data"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## MotusRBook
+
+Based on examples in **Motus R Book**
+by Tara L. Crewe, Zoe Crysler, and Philip Taylor
+https://beta.motus.org/MotusRBook/
+
+This is set up to have most of the things you might want to change in the top code block.  If you will need to update the database files for project or receiver, do that in the 'update' and 'rectags' blocks below.  Otherwise, the code just connects you to the existing databases.
+
+```{r setup}
+# install.packages("motus", 
+#                  repos = c(birdscanada = 'https://birdscanada.r-universe.dev',
+#                            CRAN = 'https://cloud.r-project.org'))
+library(motus)
+library(lubridate)
+library(dplyr)
+Sys.setenv(TZ = "UTC")
+# Database stuff
+library(DBI)
+library(RSQLite)
+# Plot timelines
+# install.packages("vistime")
+library(tidyverse)
+library(ggplot2)
+library(vistime)
+# Maps
+library(rworldmap)
+
+# Project
+# California Department of Fish and Wildlife Motus (#446)
+proj.num = 446
+
+## First time
+# proj.sql.motus <- tagme(projRecv = proj.num, new = TRUE, update = TRUE)
+
+# Focal receiver (from df.projRecvs below)
+#    stationID        stationName            serno
+# 1      10593     Grizzly Island CTT-4C1B6DEFDC5C
+# 2      10616        Yolo Bypass CTT-61546A685C2C
+# 3      10639       Eden Landing CTT-E56F9EF340B6
+# 4      12431     Elkhorn Slough CTT-3D35D88BF546
+# 5      12459        Salt Slough CTT-B9683CBEE57C
+# 6      12617         Llano Seco CTT-D818FFEDB922
+# 7      12723        San Jacinto CTT-1CBEBDA79D53
+# 8      13040         Palo Verde CTT-39A7525A06F7
+# 9      13041           Imperial CTT-8B07B0305758
+# 10     13310          Camp Cady CTT-V30B0154E4B7
+# 11     13387 Indian Joe Springs             <NA>
+
+focal_rec_id = 13310 # Use a stationID
+
+## Recievers
+# Set which stations data to use
+# Camp Cady
+rec_id_camp_cady = "CTT-V30B0154E4B7"
+# Indian Joe
+# rec_id_indian_joe = "CTT-V30B0154C892"
+
+motusLogout()
+```
+
+## Update files
+
+You can update individual sql files or all at once.
+
+I have stopped updating the project (with code above) or all at once.
+
+```{r update}
+# Project
+## Update existing project from motus database
+# proj.sql.motus <- tagme(projRecv = proj.num, new = FALSE, update = TRUE)
+
+## Or just connect to an existing .motus database
+proj.sql.motus <- tagme(projRecv = proj.num, new = FALSE, update = FALSE)
+
+
+# All at once for all of your projects
+### Beware this will take a really long time
+# tagme()
+
+# This will get data on all projects and receiver deployments
+## Access this in recDeps table in proj.projnum.sql.motus
+# metadata(proj.sql.motus, projectIDs = proj.num)
+
+# motusLogout()
+```
+
+## Download one receiver to look at one tag
+
+tbl.recvDeps includes all receiver deployments in the motus system, active and inactive, as of the time you updated the project .motus file. This is done so that if Sensorstations get updated, this code still works.
+
+```{r rectag}
+# Construct receiver IDs
+# To find station indentifiers, use this:
+tbl.recvDeps <- tbl(proj.sql.motus, "recvDeps")
+df.projRecvs <- tbl.recvDeps %>%
+  filter(projectID == proj.num, # Get just CDFW receivers
+         status == "active") %>%
+  collect() %>%
+  as.data.frame() %>%
+  mutate(tsStart = as_datetime(tsStart, tz = "UTC", origin = "1970-01-01"),
+         tsEnd = as_datetime(tsEnd, tz = "UTC", origin = "1970-01-01"))
+View(select(df.projRecvs, c("stationID", "stationName", "serno")))
+
+rec_id = df.projRecvs$serno[df.projRecvs$stationID == focal_rec_id]
+
+# *** First time only ***
+# These will be saved in the working directory at SQLite databases with names
+#  like 'CTT-XXXXXXXXXXX.motus'
+# This can take a long time
+# rec.motus = tagme(rec_id, new=TRUE, update = T)
+
+# To update the .motus SQLite file, use this
+# rec.motus = tagme(rec_id, new=F, update = T)
+
+# To just connect and use the current .motus SQLite files use this
+rec.motus = tagme(rec_id, new=F, update = F)
+
+# Get link to table
+tbl.alltags <- tbl(rec.motus, "alltags")
+# Bring data in from .motus file as data.frame and fix datetime
+df.alltags <- tbl.alltags %>% 
+  collect() %>% 
+  as.data.frame() %>%     # for all fields in the df (data frame)
+  mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"))
+
+motusLogout()
+```
+
+
+## Accessing tables
+
+Once you have the .motus files downloaded and updated, you can look at them 
+using a database viewer like dBeaver by connecting an sQLite connection to the 
+location on disk.
+
+```{r data}
+file.name <- dbConnect(SQLite(),
+                       paste0("project-",
+                              proj.num,
+                              ".motus"))
+dbListTables(file.name)
+dbListFields(file.name, "species")
+
+# This just points to the database in the default directory
+# These commands only work if you updated the project database above.
+
+# This is a filtered table
+#  It takes a LONG time to run
+# tbl.TRBL <- tbl(proj.sql.motus, "alltags") %>%
+#   filter(speciesEN == "Tricolored Blackbird") %>%
+#   collect()
+
+# Get the daily median location of GPS points for these data
+# TRBL.GPS <- getGPS(src = proj.sql.motus, data = tbl.TRBL)
+
+# Export as RDS to preserve dateTimes
+# You can then just import this to work with tag data from before the date of export
+saveRDS(df.alltags, paste0("df.alltags.",
+                           proj.num, ".",
+                           Sys.Date(), ".rds"))
+# To read it back in (with appropriate date)
+# df.alltags = readRDS("df.alltags.2023-08-21.rds")
+```
+
+## Tag Deployments
+
+
+```{r tagdeploys}
+# 1. download full tag metadata for our project only
+# See update section above
+
+# 2. determine how many tags are registered to your project
+tbl.tags <- tbl(proj.sql.motus, "tags")
+df.tags <- tbl.tags %>%
+  filter(projectID == proj.num) %>%
+  collect() %>%
+  as.data.frame()
+nrow(df.tags)
+unique(df.tags$tagID)
+
+# 3. determine how many of those registered tags were deployed
+tbl.tagDeps <- tbl(proj.sql.motus, "tagDeps") 
+
+df.tagDeps <- tbl.tagDeps %>%
+  filter(projectID == proj.num) %>%
+  collect() %>%
+  as.data.frame() %>% # once in df format, can format dates with lubridate
+  mutate(tsStart = as_datetime(tsStart, tz = "UTC", origin = "1970-01-01"),
+         tsEnd = as_datetime(tsEnd, tz = "UTC", origin = "1970-01-01")) 
+  # find tags that are not deployed
+anti_join(df.tags, df.tagDeps, by = "tagID")
+  # - currently there are 26, and some show as deployed, so not sure what this means
+
+  # find multiple deployments
+df.alltags %>%
+  select(motusTagID, tagDeployID) %>%
+  filter(!(is.na(tagDeployID))) %>% # remove NA tagDeployIDs
+  distinct() %>%
+  group_by(motusTagID) %>%
+  mutate(n = n()) %>%
+  filter(n > 1)
+  # - Currently there are 0 tags with multiple deployments
+
+# This produces bad motusTagDepIDs for CDFW 
+#  because apparently the tagDeployIDs are all NA
+df.alltags <- df.alltags %>%
+  mutate(motusTagDepID = paste(motusTagID, tagDeployID, sep = "."))
+df.tagDeps <- df.tagDeps %>%
+  mutate(motusTagDepID = paste(tagID, deployID, sep = "."))
+
+
+# Plot timelines
+df.timeline = df.tagDeps %>%
+  select(fullID, start = tsStart, end = tsEnd) %>%
+  mutate(event = str_extract(fullID, "(?<=#).+(?=:)")) %>%
+  filter(!is.na(start))
+
+p = gg_vistime(df.timeline)
+p
+
+# 4. determine location of tag deployments
+na.lakes <- map_data(map = "lakes")
+na.lakes <- mutate(na.lakes, long = long - 360)
+
+# Include all of the Americas to begin
+na.map <- map_data(map = "world2")
+na.map <- filter(na.map, region %in% c("Canada", "USA"))
+                               
+na.map <- mutate(na.map, long = long- 360)
+
+# set limits to map based on locations of detections, ensuring they include the
+# deployment locations
+#  These can be set arbitrarily using coordinates from Google Earth
+xmin <- min(df.tagDeps$longitude, na.rm = TRUE) - 5 # -120 #
+xmax <- max(df.tagDeps$longitude, na.rm = TRUE) + 5 # -116 #
+ymin <- min(df.tagDeps$latitude, na.rm = TRUE) - 5 # 35 #
+ymax <- max(df.tagDeps$latitude, na.rm = TRUE) + 5 # 37 #
+                
+# map using ggplot
+ggplot(data = na.lakes, aes(x = long, y = lat)) + 
+  geom_polygon(data = na.map, aes(long, lat, group = group), 
+               colour = "grey", fill="grey98") + 
+  geom_polygon(aes(group = group), colour = "grey", fill = "white") +
+  coord_map(projection = "mercator", 
+            xlim = c(xmin, xmax), 
+            ylim = c(ymin, ymax)) +
+  labs(x = "", y = "") + 
+  theme_bw() + 
+  geom_point(data = filter(df.tagDeps, projectID == proj.num), 
+             aes(longitude, latitude), size = 2, shape = 1, colour = "red")
+
+# 5. determine completeness and accuracy of tag deployment metadata
+  # Range of metadata values
+df.tagDeps %>%
+  select(tagID, projectID, tsStart, tsEnd, speciesID, latitude, longitude) %>%
+  summary()
+#  There are 
+#    - 0 missing tsStart and end dates
+#    - 8 missing species IDs
+#    - 22 missing lat/lons
+#    - deployment start dates are 2021-07-14 to 2023-07-13
+
+  # Check that species IDs are appropriate for your data
+sp.list <- unique(df.tagDeps$speciesID)
+tbl.species <- tbl(proj.sql.motus, "species") 
+tbl.species %>%
+  filter(id %in% sp.list) %>%
+  collect() %>%
+  as.data.frame()
+  # just Hoary and Brazilian Free-tailed bats and Monarchs
+
+```
+
+## Reciever Metadata
+
+
+```{r recievermeta}
+
+# 1. download full receiver metadata across the network
+# This may have just been run in one of the blocks above (around line 116)
+# metadata(proj.sql.motus)
+
+# 2. determine number of project receiver deployments
+tbl.recvDeps <- tbl(proj.sql.motus, "recvDeps")
+df.projRecvs <- tbl.recvDeps %>%
+  filter(projectID == proj.num, status == "active") %>%
+  collect() %>%
+  as.data.frame() %>%
+  mutate(tsStart = as_datetime(tsStart, tz = "UTC", origin = "1970-01-01"),
+         tsEnd = as_datetime(tsEnd, tz = "UTC", origin = "1970-01-01"))
+
+summary(df.projRecvs)
+# - Lat and lon are reasonable
+# - tsStart ranges from 2021-08-31 to 2023-07-12
+# - 3 missing elevation
+# - missing utcoffset
+
+df.projRecvs %>%
+  mutate(dateStart = date(tsStart)) %>% 
+  select(-serno,-fixtureType, -macAddress, -tsStart, -tsEnd, -elevation, 
+         -projectID, -status, -receiverType, -siteName) %>%
+  arrange(deviceID, latitude, dateStart)
+
+# 3. determine timing of project receiver deployments
+df.projRecvs.long <- df.projRecvs %>%
+  select(deviceID, deployID, tsStart, tsEnd) %>% 
+  gather(when, ts, c(tsStart, tsEnd)) %>%
+  # fake end date:
+  mutate(ts = if_else(is.na(ts), max(ts, na.rm = TRUE) + duration(1, "month"), ts)) 
+
+ggplot(data = df.projRecvs.long, 
+       aes(x = ts, y = as.factor(deviceID), colour = as.factor(deployID))) +
+  theme(legend.position = "none") +
+  geom_line(lwd = 3) + 
+  # instead, centre to the right
+  geom_text(data = filter(df.projRecvs.long, when == "tsStart"), 
+            aes(label = deployID), hjust = "left", nudge_y = 0.2, size = 3, angle = 45) +
+  theme_bw() +
+  labs(x = "Year", y = "Receiver ID")
+
+ggplot(data = df.projRecvs.long, 
+       aes(x = yday(ts), y = as.factor(deviceID), colour = as.factor(deployID))) +
+  theme_bw() +
+  theme(legend.position = "none") + 
+  geom_line(lwd = 3) + 
+  # centre labels to the left
+  geom_text(data = filter(df.projRecvs.long, when == "tsStart"), 
+            aes(label = deployID), hjust = "left", nudge_y = 0.4, size = 3) +
+  labs(x = "Day of year", y = "Receiver ID") +
+  facet_grid(year(ts) ~ ., scales = "free")
+
+# 4. determine location of network-wide and project receiver deployments
+df.recvDeps <- tbl.recvDeps %>%
+  collect() %>%
+  as.data.frame() %>%
+  mutate(tsStart = as_datetime(tsStart, tz = "UTC", origin = "1970-01-01"),
+         tsEnd = as_datetime(tsEnd, tz = "UTC", origin = "1970-01-01"))
+
+na.lakes <- map_data(map = "lakes")
+na.lakes <- mutate(na.lakes, long = long - 360)
+
+na.map <- map_data(map = "world2")
+na.map <- filter(na.map, 
+                 region %in% c("Canada", "USA", "Mexico", "lakes", "Belize", 
+                               "Costa Rica", "Panama", "Guatemala", "Honduras", 
+                               "Nicaragua", "El Salvador", "Colombia", "Venezuela", 
+                               "Ecuador", "Peru", "Brazil", "Guyana","Suriname", 
+                               "Bolivia", "French Guiana", "Jamaica", "Cuba", 
+                               "Haiti", "Dominican Republic", "The Bahamas", 
+                               "Turks and Caicos Islands", "Puerto Rico", 
+                               "British Virgin Islands", "Montserrat", "Dominica", 
+                               "Saint Lucia", "Barbados", "Grenada", 
+                               "Trinidad and Tobago", "Chile", "Argentina", 
+                               "Uruguay", "Paraguay")) %>%
+  mutate(long = long - 360)
+
+xmin <- min(df.recvDeps$longitude, na.rm = TRUE) - 2
+xmax <- -20 # restrict to the Americas (excluding a few points in Europe)
+ymin <- -60 #min(df.recvDeps$longitude, na.rm = TRUE) - 2
+ymax <- max(df.recvDeps$latitude, na.rm = TRUE) + 2
+
+ggplot(data = na.lakes, aes(x = long, y = lat)) + 
+  theme_bw() + 
+  geom_polygon(data = na.map, aes(long, lat, group = group), 
+               colour = "grey", fill = "grey98") +
+  geom_polygon(aes(group = group), colour = "grey", fill = "white") +
+  coord_map(projection = "mercator", xlim = c(xmin, xmax), ylim = c(ymin, ymax)) +
+  labs(x = "", y = "") + 
+  geom_point(data = df.recvDeps, 
+             aes(longitude, latitude, colour = as.logical(projectID == proj.num)), 
+             size = 1, shape = 4) +
+  scale_colour_manual(values = c("grey30", "red"), name = paste0("Project ",proj.num, " Deployment"))
+
+xmin <- min(df.projRecvs$longitude, na.rm = TRUE) - 2
+xmax <- max(df.projRecvs$longitude, na.rm = TRUE) + 2
+ymin <- min(df.projRecvs$latitude, na.rm = TRUE) - 1
+ymax <- max(df.projRecvs$latitude, na.rm = TRUE) + 1
+                
+# map
+ggplot(data = na.lakes, aes(x = long, y = lat))+ 
+  theme_bw() + 
+  geom_polygon(data = na.map, aes(long, lat, group = group), 
+               colour = "grey", fill = "grey98") +
+  geom_polygon(aes(group = group), colour = "grey", fill = "white") +
+  coord_map(projection = "mercator", xlim = c(xmin, xmax), ylim = c(ymin, ymax)) +
+  labs(x = "", y = "") +
+  geom_point(data = filter(df.projRecvs, 
+                           year(tsStart) %in% 2020:2023, 
+                           !is.na(latitude)),  # remove mobile receivers
+             aes(longitude, latitude, colour = as.factor(deviceID)), size = 2, shape = 1)+
+  scale_colour_discrete(name = "Receiver ID") 
+
+
+# 5. determine completeness and accuracy of receiver metadata
+
+tbl.antDeps <- tbl(proj.sql.motus, "antDeps") 
+
+df.antDeps <- tbl.antDeps %>%
+  select(deployID, port, antennaType, bearing, heightMeters) %>%
+  collect() %>%
+  as.data.frame()
+
+# receiver deployments; select variables of interest
+df.ant.recvDeps <- df.recvDeps %>%
+  select(deployID, receiverType, deviceID, name, latitude, longitude, 
+         isMobile, tsStart, tsEnd, projectID, elevation) 
+
+df.stationDeps <- left_join(df.ant.recvDeps, df.antDeps, by = "deployID")
+
+# Filter to just our project if needed
+df.stationDeps <- filter(df.stationDeps, projectID == proj.num)
+
+summary(df.stationDeps)
+```
+
+
+## Data cleaning
+
+```{r cleaning}
+# This uses the local copy created above
+# This is producing an empty table because
+#  tagProjID is NA
+df.alltags %>%
+  filter(tagProjID == proj.num) %>% # subset to include only tags registered to project
+  count(motusTagDepID) %>%
+  as.data.frame()
+
+# This brings data in from local database
+# tbl(proj.sql.motus, "alltags") %>% 
+
+# This uses the local copy created above
+df.alltags %>% 
+  filter(tagProjID == proj.num) %>% # subset to include only tags registered to project
+  mutate(rl.gt.3 = if_else(runLen == 3, "run 3", "run > 3")) %>%
+  count(motusTagDepID, rl.gt.3) %>%
+  collect() %>%
+  spread(key = rl.gt.3, value = n)
+# - large numbers have NA for deployment ID
+# - some of these have very large numbers of short runs
+
+filter(tbl(proj.sql.motus, "alltags"), runLen <= 3) %>% 
+  collect() %>% 
+  nrow()
+# - over 20709 short runs
+
+to_remove <- tbl(proj.sql.motus, "runs") %>%
+  select(runID, motusFilter) %>%
+  filter(motusFilter == 0)
+tbl_filtered <- anti_join(tbl(proj.sql.motus, "alltags"), to_remove, by = "runID")
+
+filter(tbl_filtered, runLen <= 3) %>% 
+  collect() %>% 
+  nrow()
+# 723 rows have runLen <=3
+
+tbl.filtered.alltags <- filterByActivity(proj.sql.motus, return = "all")
+
+# Filter out the rows of short run records
+
+# getGPS expects ts to not be transformed, I think, so commenting out last part
+df.alltags.sub <- tbl.filtered.alltags %>% 
+  filter(probability == 1) %>%
+  collect() %>%
+  as.data.frame() #%>%
+  # mutate(ts = as_datetime(ts),  # work with dates AFTER transforming to flat file
+  #        tagDeployStart = as_datetime(tagDeployStart),
+  #        tagDeployEnd = as_datetime(tagDeployEnd))
+
+df.block.0 <- filter(tbl.filtered.alltags, probability == 0) %>%
+  select(motusTagID, runID) %>%
+  distinct() %>%
+  collect() %>%
+  data.frame()
+
+# Get GPS data
+# Retrieve GPS data for each hitID
+# This failed with an error
+#  When you use `by = 'closest'`
+# Error: Problem with `mutate()` column `gpsID`.
+# i `gpsID = purrr::map_int(...)`.
+# x can only subtract from "POSIXt" objects
+# Run `rlang::last_error()` to see where the error occurred.
+#  when you use `by = 'daily'`, which I think I used before
+# Error: Problem with `mutate()` column `timeBin`.
+# i `timeBin = as.integer(.data$ts/by)`.
+# x '/' not defined for "POSIXt" objects
+# Run `rlang::last_error()` to see where the error occurred.
+# This error is due to not running the step above that transforms ts into dateTime
+
+# Use only one of the options below, in order of likely speed
+gps_index <- getGPS(proj.sql.motus, data = df.alltags.sub, by = "daily")
+gps_index <- getGPS(proj.sql.motus, data = df.alltags.sub, by = "closest", cutoff = 20)
+gps_index <- getGPS(proj.sql.motus, data = df.alltags.sub, by = 15)
+
+
+# Merge GPS points in with our data
+df.alltags.sub <- left_join(df.alltags.sub, gps_index, by = "hitID")
+
+filter(df.alltags.sub, is.na(gpsLat)) %>% 
+  collect() %>% 
+  nrow()
+filter(df.alltags.sub, is.na(gpsLat) & is.na(recvDeployLat)) %>% 
+  collect() %>% 
+  nrow()
+filter(df.alltags.sub, is.na(0)) %>% 
+  collect() %>% 
+  nrow()
+filter(df.alltags.sub, is.na(999)) %>% 
+  collect() %>% 
+  nrow()
+
+df.alltags.sub.2 <- df.alltags.sub %>% 
+  mutate(recvLat = if_else((is.na(gpsLat)|gpsLat == 0|gpsLat == 999), 
+                           recvDeployLat, gpsLat),
+         recvLon = if_else((is.na(gpsLon)|gpsLon == 0|gpsLon == 999), 
+                           recvDeployLon, gpsLon),
+         recvAlt = if_else(is.na(gpsAlt), recvDeployAlt, gpsAlt)) %>%
+  select(-noise, -slop, -burstSlop, -done, -bootnum, -mfgID, 
+         -codeSet, -mfg, -nomFreq, -markerNumber, -markerType, 
+         -tagDepComments, -fullID, -deviceID, -recvDeployLat, 
+         -recvDeployLon, -recvDeployAlt, -speciesGroup, -gpsLat, 
+         -gpsLon, -recvAlt, -recvSiteName) %>%
+  mutate(recvLat = plyr::round_any(recvLat, 0.05), 
+         recvLon = plyr::round_any(recvLon, 0.05),
+         recvDeployName = if_else(is.na(recvDeployName), 
+                                  paste(recvLat, recvLon, sep=":"), 
+                                  recvDeployName))
+
+df.alltags.sub.2 %>%
+  filter(is.na(recvLat)) %>%
+  select(recvLat, recvLon, recvDeployName, recvDeployID, recv, 
+         recvProjID, recvProjName) %>%
+  distinct()
+# 5 missing GPS on 2023-08-22
+
+fun.getpath <- function(df, pr.nm = proj.num) {
+  df %>%
+    filter(tagProjID == pr.nm, # keep only tags registered to the sample project
+           !is.na(recvLat) | !(recvLat == 0)) %>% # drops data without lon/lat
+    group_by(motusTagID, runID, recvDeployName, ambigID, 
+             tagDepLon, tagDepLat, recvLat, recvLon) %>%
+    #summarizing by runID to get max run length and mean time stamp:
+    summarize(max.runLen = max(runLen), ts.h = mean(lubridate::as_datetime(ts))) %>% 
+    arrange(motusTagID, ts.h)
+} # end of function
+
+df.alltags.path <- fun.getpath(df.alltags.sub.2)
+
+df.alltags.path %>%
+  select(tagDepLon, tagDepLat, recvLat, recvLon, max.runLen, ts.h) %>%
+  summary()
+
+tags_all = unique(df.alltags.path$motusTagID)
+tags_all
+length(tags_all)
+length(unique(df.alltags.path$motusTagID))/6
+
+tagset1 = tags_all[1:6]
+tagset2 = tags_all[7:12]
+tagset3 = tags_all[13:18]
+tagset4 = tags_all[19:24]
+tagset5 = tags_all[25:30]
+tagset6 = tags_all[31:36]
+# tagset7 = tags_all[37:42]
+tagset7 = tags_all[37:39]
+# tagset8 = tags_all[43:48]
+# tagset9 = tags_all[49:54]
+# tagset10 = tags_all[55:60]
+# tagset11 = tags_all[61:66]
+# tagset12 = tags_all[67:72]
+# tagset13 = tags_all[73:75]
+
+fun.plot_path = function(path, tagset) {
+  ggplot(data = filter(path, 
+                     motusTagID %in% tagset), 
+       aes(x = ts.h, y = recvLat)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + 
+  geom_point() + 
+  geom_path() +
+  facet_wrap(~ motusTagID, scales = "free", ncol = 2)
+}
+
+fun.plot_path(df.alltags.path, tagset1)
+fun.plot_path(df.alltags.path, tagset2)
+fun.plot_path(df.alltags.path, tagset3)
+fun.plot_path(df.alltags.path, tagset4)
+fun.plot_path(df.alltags.path, tagset5)
+fun.plot_path(df.alltags.path, tagset6)
+fun.plot_path(df.alltags.path, tagset7)
+# fun.plot_path(df.alltags.path, tagset8)
+# fun.plot_path(df.alltags.path, tagset9)
+# fun.plot_path(df.alltags.path, tagset10)
+# fun.plot_path(df.alltags.path, tagset11)
+# fun.plot_path(df.alltags.path, tagset12)
+# fun.plot_path(df.alltags.path, tagset13)
+
+# Several tags have recLat in the -30s from late 2022, which is very unlikely
+# 49052,50107, 65962, 69930, 70405, 70406, 70407, 70408, 70409, 70411, 70412,
+# 70413, 70414, 70420, 70421, 70423
+```
+
+### Signal Strength Plots
+
+Have a look at detection data colored by antenna direction.  NA usually is for an omni.
+
+```{r sig} 
+# Get link to table
+tbl.rec.alltags <- tbl(rec.motus, "alltags")
+
+# Bring data in from .motus file as data.frame and fix datetime
+df.rec.alltags <- tbl.rec.alltags %>% 
+  collect() %>% 
+  as.data.frame() %>%     # for all fields in the df (data frame)
+  mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"))
+
+(range(df.rec.alltags$ts))
+which(is.na(df.rec.alltags$ts))
+
+# ***Got to here***
+
+# tag_motus_id = 56747 # Cowbird tag
+
+# Filter down to tag detection time range
+# *** This will fail if gps and station are not both using UTC ***
+# Should/can we add a way to correct times, if needed?
+# Could add multiple tags to the filter here and color by them later
+# Filter by a time range created like above
+# (time_range = range(points@data$timestamp))
+# Whole time range. Determined from running filter step below and finding range
+(time_range = c("2022-08-24", "2023-08-19"))
+
+# YBCU tags detected by CDFW stations
+# Hummus
+tag_motus_id = 60762 
+tag = "Hummus (60762)"
+file_name_prefix = "Yellow-billed Cuckoo Hummus"
+(time_range = c("2023-08-09", "2023-08-09"))
+
+# WETA
+tag_motus_id = 76180 
+tag = "Western Tanager (2nd tag 76180)"
+file_name_prefix = "Western Tanager 1"
+(time_range = c("2023-08-12", "2023-08-12"))
+
+
+# Run from here for plots
+df.rec_tags = df.alltags %>%
+  filter(motusTagID == tag_motus_id,
+         ts >= time_range[1],
+         ts <= time_range[2])
+(time_range = range(df.rec_tags$ts))
+# Create scaling factor for later (between 0-1)
+df.rec_tags$sig_scaled = (df.rec_tags$sig
+  - max(df.rec_tags$sig)) / 
+  (max(df.rec_tags$sig) - min(df.rec_tags$sig))
+
+rec_tags.sig  = df.rec_tags %>% 
+  ggplot(aes(x = ts, y = sig, col = as.factor(paste(recvDeployName,
+                                                    antBearing, 
+                                                    sep = "-")))) +
+  theme_bw() + 
+  geom_point() + 
+  labs(x = "Time of day (UTC)", y = "Signal strength",
+       title = tag) +
+  scale_color_discrete(name = "Antenna bearing") +
+  facet_grid(recvDeployName ~ .)
+rec_tags.sig
+
+ggsave(filename = paste(
+  file_name_prefix, tag,
+  as.character(as.Date(time_range[1])),
+  "to",
+  as.character(as.Date(time_range[2])),
+  ".pdf", sep = "_"),
+  device = "pdf",
+  width = 8, height = 5,
+  units = "in")
+
+ggsave(filename = paste(
+  file_name_prefix, tag,
+  as.character(as.Date(time_range[1])),
+  "to",
+  as.character(as.Date(time_range[2])),
+  ".jpg", sep = "_"),
+  device = "jpg",
+  width = 8, height = 5,
+  units = "in")
+
+```
+
+
