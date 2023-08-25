@@ -1,0 +1,259 @@
+---
+title: "TagTestingCDFW"
+author: "Patrick D. lorch"
+date: "2022-10-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Import GPS and receiver tag data and plot
+
+## Rmotus package install
+
+```{r eval=F}
+# install.packages("motus", 
+#                  repos = c(birdscanada = 'https://birdscanada.r-universe.dev',
+#                            CRAN = 'https://cloud.r-project.org'))
+
+# If individual package fail
+# install.packages("crayon")
+# install.packages("assertthat")
+# install.packages("cpp11")
+# install.packages("jsonlite")
+
+# If this still fails you can do this and rerun
+options(timeout = max(1000, getOption("timeout")))
+
+```
+
+## Set receiver and file paths for a given map
+
+The way this is set up, you set up receiver, tag, .gpx combos, then comment out 
+all but one and run.
+
+You can knit this in Rstudio to produce a report for each combo that shows 
+diagnostics.
+
+```{r set}
+# Camp Cady
+# rec_id = "CTT-V30B0154E4B7"
+# tag_motus_id = 57234
+# GPS_filepath = "CDFW sites/"
+
+# rec_id = "CTT-V30B0154E4B7"
+# tag_motus_id = 56719
+# GPS_filepath = "CDFW sites/"
+
+# Indian Joe
+# rec_id = "CTT-V30B0154C892"
+# tag_motus_id = 57234
+# GPS_filepath = "CDFW sites/"
+
+# rec_id = "CTT-V30B0154C892"
+# tag_motus_id = 56719
+# GPS_filepath = "CDFW sites/"
+
+# How many rings showing distance from tower do you want
+km_rings = 4
+
+gpx_layer = "track_points"
+p_cex = 10 # Point size multiplier
+
+```
+
+## MotusRBook stuff
+
+Based on examples in **Motus R Book**
+by Tara L. Crewe, Zoe Crysler, and Philip Taylor
+https://beta.motus.org/MotusRBook/
+
+If this is your first time generating a receiver .motus file, use the first one.
+It will generate an SQLite file called something.motus in the file storage (memory)
+area with all the receiver data in tables, including tag detections. The tbl.
+command below creates a link to one table in the database in memory. Then you 
+can bring the data for that table into a data.frame.
+
+```{r tagdetections}
+library(motus)
+library(lubridate)
+library(dplyr)
+Sys.setenv(TZ = "UTC")
+
+# *** First time only ***
+# This can take a long time
+# rec.motus = tagme(rec_id, new=TRUE, update = T)
+
+# To update the .motus SQLite file, use this
+# rec.motus = tagme(rec_id, new=F, update = T)
+
+# To just connect and use the current .motus SQLite files use this
+rec.motus = tagme(rec_id, new=F, update = F)
+
+# Get link to table
+tbl.alltags <- tbl(rec.motus, "alltags")
+# Bring data in from .motus file as data.frame and fix datetime
+df.alltags <- tbl.alltags %>% 
+  collect() %>% 
+  as.data.frame() %>%     # for all fields in the df (data frame)
+  mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"))
+
+motusLogout()
+```
+
+## Import, reformat, and merge GPS and reciever tag detection data
+
+Not clear how best to match GPS points to tag detections.  For now we use nearest point in time. 
+Uses code example here:
+https://stackoverflow.com/questions/70974563/r-merge-two-data-frames-based-on-nearest-date-and-time-match
+
+* This file is set up to do the import and map for a single tag.
+* Assumes both .gpx and sensorstation have accurate time in UTC
+
+```{r gpsdata}
+library(rgdal)
+library(lubridate)
+library(ggplot2)
+library(dplyr)
+library(motus)
+library(sp)
+
+# Check structure of .gpx file (different between devices)
+ogrListLayers(GPS_filepath)
+
+# Read in GPS points from route in .gpx format
+points = readOGR(GPS_filepath, gpx_layer)
+View(points@data)
+# This step can be commented out if just GPS track of interest was exported
+# Subset just one track segment for the trip of interest
+#  Don't use date to subset, due to UTC being a day ahead during some of track
+# points = points[points@data$track_fid == 63,] # For Elkhorn slough
+
+# Create datetime from end and store in blank timestamp field and show range
+# Assumes this file is already trimmed to roughly the test period
+points@data = points@data %>%
+  mutate(timestamp = as_datetime(time, tz = "UTC"))
+
+(time_range = range(points@data$timestamp))
+
+```
+
+### Signal Strength Plots
+
+Have a look at detection data colored by antenna direction.  NA usually is for an omni.
+
+```{r sig} 
+# Filter down to test tag and times of test
+# *** This will fail if gps and station are not both using UTC ***
+# Should/can we add a way to correct times, if needed?
+# Could add multiple tags to the filter here and color by them later
+df.rec_tags = df.alltags %>%
+  filter(motusTagID == tag_motus_id,
+         ts >= time_range[1],
+         ts <= time_range[2])
+# Create scaling factor for later (between 0-1)
+df.rec_tags$sig_scaled = (df.rec_tags$sig
+  - max(df.rec_tags$sig)) / 
+  (max(df.rec_tags$sig) - min(df.rec_tags$sig))
+
+rec_tags.sig  = df.rec_tags %>% 
+  ggplot(aes(x = ts, y = sig, 
+             col = as.factor(antBearing))) +
+  theme_bw() + 
+  geom_point() + 
+  labs(x = "Time of day", y = "Signal strength") +
+  scale_color_discrete(name = "Antenna bearing") +
+  facet_grid(recvDeployName ~ .)
+rec_tags.sig
+
+```
+
+
+### Match positions with detections
+
+This is where it is not exactly clear the right way to do this.
+
+Using minutes there are ~11-12 detections/minute and 12 GPS coordinates per minute. 
+Could consider doing seconds instead.
+
+```{r merge}
+# Round to nearest minute
+points@data$tmp = points@data$timestamp %>%
+  round_date("minute")
+df.rec_tags$tmp = df.rec_tags$ts %>%
+  round_date("minute")
+## Add group to GPS coords
+points@data$grp = 1:nrow(points@data)
+
+tags_points_l_joined = df.rec_tags %>%
+  left_join(points@data, by = "tmp")
+tags_points.nearest = tags_points_l_joined %>%
+  group_by(grp) %>% 
+  slice(which.min(abs(difftime(timestamp, ts)))) %>% 
+  ungroup() %>% 
+  select("track_seg_point_id", "ele", "timestamp", "grp", "hitID", "runID",
+         "batchID", "sig", "sig_scaled", "done", "motusTagID", "ambigID", 
+         "port", "nodeNum", "runLen", "motusFilter", "bootnum", "deviceID", 
+         "recvDeployID", "recvDeployLat", "recvDeployLon", "recvDeployAlt", 
+         "recv", "recvDeployName" , "recvSiteName", "isRecvMobile", "recvProjID",
+         "recvUtcOffset", "antType", "antBearing", "antHeight", "speciesEN",
+         "speciesFR", "speciesSci", "speciesGroup", "tagProjName" , 
+         "recvProjName")
+points@data = points@data %>%
+  left_join(tags_points.nearest, by = "grp")
+plot(points)
+
+```
+
+
+## Leaflet map to examine data
+
+
+```{r maptesttag}
+# install.packages("leaflet.extras2", "geojsonsf")
+library(dplyr)
+library(leaflet)
+library(leaflet.extras2)
+library(sf)
+library(geojsonsf)
+library(plotrix)
+library(htmlwidgets)
+
+pal <- colorNumeric(
+  palette = "magma",
+  domain = points$sig,
+  na.color = "#737373")
+
+m = leaflet(points) %>%
+  addTiles(group = "OSM (default)") %>%
+  addProviderTiles('Esri.WorldImagery',group = "Esri World Imagery") %>%
+  addCircles(data = station_coords, color = "green", 
+             radius = seq(1, km_rings)*1000,
+             fillColor = "transparent") %>%
+  addCircleMarkers(color = pal(points$sig),
+                   radius = ifelse(is.na(points$sig_scaled), 2, -(p_cex * points$sig_scaled)),
+                   popup = ~paste(as.character(points$sig),
+                                  as.character(points$motusTagID), sep = "; "), 
+                   label = ~paste(as.character(points$sig),
+                                  as.character(points$motusTagID), sep = "; ")) %>%
+  addLayersControl(
+        baseGroups = c("OSM (default)", "Esri World Imagery"),
+        position = "bottomright",
+        options = layersControlOptions(collapsed = TRUE)) %>%
+  addLegend(pal = pal, values = points$sig) %>%
+  addScaleBar(
+    position = c("bottomleft"),
+    options = scaleBarOptions()
+  )
+m
+saveWidget(m, file = 
+             # paste(df.rec_tags$recvSiteName[1], 
+             paste(df.rec_tags$recvDeployName[1], 
+                   as.character(tag_motus_id), 
+                   as.character(as.Date(df.rec_tags$ts[1])),
+                   "html", 
+                   sep = "."))
+```
+
