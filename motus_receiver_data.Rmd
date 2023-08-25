@@ -1,0 +1,184 @@
+---
+title: "motus_receiver_data"
+author: "Patrick D. lorch"
+date: "2023-08-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Before running this code you should run the motus_project_data to get the data downloaded into local .motus database files.  Then you can just connect to them here.
+
+### Signal Strength Plots
+
+Have a look at detection data colored by antenna direction.  NA usually is for an omni.
+
+```{r setup} 
+library(motus)
+library(lubridate)
+library(dplyr)
+Sys.setenv(TZ = "UTC")
+
+# Project
+# California Department of Fish and Wildlife Motus (#446)
+proj.num = 446
+
+## Connect to existing .motus
+proj.sql.motus <- tagme(projRecv = proj.num, new = FALSE, update = FALSE)
+
+# Focal receiver (from df.projRecvs in rectag block below)
+#    stationID        stationName            serno
+# 1      10593     Grizzly Island CTT-4C1B6DEFDC5C
+# 2      10616        Yolo Bypass CTT-61546A685C2C
+# 3      10639       Eden Landing CTT-E56F9EF340B6
+# 4      12431     Elkhorn Slough CTT-3D35D88BF546
+# 5      12459        Salt Slough CTT-B9683CBEE57C
+# 6      12617         Llano Seco CTT-D818FFEDB922
+# 7      12723        San Jacinto CTT-1CBEBDA79D53
+# 8      13040         Palo Verde CTT-39A7525A06F7
+# 9      13041           Imperial CTT-8B07B0305758
+# 10     13310          Camp Cady CTT-V30B0154E4B7
+# 11     13387 Indian Joe Springs             <NA>
+
+focal_rec_id = 13310 # Use a stationID
+
+## Recievers
+# Set which stations data to use
+# Camp Cady
+rec_id_camp_cady = "CTT-V30B0154E4B7"
+# Indian Joe
+# rec_id_indian_joe = "CTT-V30B0154C892"
+
+```
+
+## Download one receiver to look at one tag
+
+tbl.recvDeps includes all receiver deployments in the motus system, active and inactive, as of the time you updated the project .motus file. I get the table of receivers for the project in a particular way so that if Sensorstations get updated, this code still works.
+
+```{r rectag}
+# Construct receiver IDs
+# To find station indentifiers, use this:
+tbl.recvDeps <- tbl(proj.sql.motus, "recvDeps")
+df.projRecvs <- tbl.recvDeps %>%
+  filter(projectID == proj.num, # Get just CDFW receivers
+         status == "active") %>%
+  collect() %>%
+  as.data.frame() %>%
+  mutate(tsStart = as_datetime(tsStart, tz = "UTC", origin = "1970-01-01"),
+         tsEnd = as_datetime(tsEnd, tz = "UTC", origin = "1970-01-01"))
+View(select(df.projRecvs, c("stationID", "stationName", "serno")))
+
+rec_id = df.projRecvs$serno[df.projRecvs$stationID == focal_rec_id]
+
+# *** First time only ***
+# These will be saved in the working directory at SQLite databases with names
+#  like 'CTT-XXXXXXXXXXX.motus'
+# This can take a long time
+# rec.motus = tagme(rec_id, new=TRUE, update = T)
+
+# To update the .motus SQLite file, use this
+# rec.motus = tagme(rec_id, new=F, update = T)
+
+# To just connect and use the current .motus SQLite files use this
+rec.motus = tagme(rec_id, new=F, update = F)
+
+# Get link to table
+tbl.alltags <- tbl(rec.motus, "alltags")
+# Bring data in from .motus file as data.frame and fix datetime
+df.alltags <- tbl.alltags %>% 
+  collect() %>% 
+  as.data.frame() %>%     # for all fields in the df (data frame)
+  mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"))
+
+motusLogout()
+```
+
+## Signal strength plots
+
+```{r signal}
+# Get link to table
+tbl.rec.alltags <- tbl(rec.motus, "alltags")
+
+# Bring data in from .motus file as data.frame and fix datetime
+df.rec.alltags <- tbl.rec.alltags %>% 
+  collect() %>% 
+  as.data.frame() %>%     # for all fields in the df (data frame)
+  mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"))
+
+(range(df.rec.alltags$ts))
+which(is.na(df.rec.alltags$ts))
+
+# ***Got to here***
+
+# tag_motus_id = 56747 # Cowbird tag
+
+# Filter down to tag detection time range
+# *** This will fail if gps and station are not both using UTC ***
+# Should/can we add a way to correct times, if needed?
+# Could add multiple tags to the filter here and color by them later
+# Filter by a time range created like above
+# (time_range = range(points@data$timestamp))
+# Whole time range. Determined from running filter step below and finding range
+(time_range = c("2022-08-24", "2023-08-19"))
+
+# YBCU tags detected by CDFW stations
+# Hummus
+tag_motus_id = 60762 
+tag = "Hummus (60762)"
+file_name_prefix = "Yellow-billed Cuckoo Hummus"
+(time_range = c("2023-08-09", "2023-08-09"))
+
+# WETA
+tag_motus_id = 76180 
+tag = "Western Tanager (2nd tag 76180)"
+file_name_prefix = "Western Tanager 1"
+(time_range = c("2023-08-12", "2023-08-12"))
+
+
+# Run from here for plots
+df.rec_tags = df.alltags %>%
+  filter(motusTagID == tag_motus_id,
+         ts >= time_range[1],
+         ts <= time_range[2])
+(time_range = range(df.rec_tags$ts))
+# Create scaling factor for later (between 0-1)
+df.rec_tags$sig_scaled = (df.rec_tags$sig
+  - max(df.rec_tags$sig)) / 
+  (max(df.rec_tags$sig) - min(df.rec_tags$sig))
+
+rec_tags.sig  = df.rec_tags %>% 
+  ggplot(aes(x = ts, y = sig, col = as.factor(paste(recvDeployName,
+                                                    antBearing, 
+                                                    sep = "-")))) +
+  theme_bw() + 
+  geom_point() + 
+  labs(x = "Time of day (UTC)", y = "Signal strength",
+       title = tag) +
+  scale_color_discrete(name = "Antenna bearing") +
+  facet_grid(recvDeployName ~ .)
+rec_tags.sig
+
+ggsave(filename = paste(
+  file_name_prefix, tag,
+  as.character(as.Date(time_range[1])),
+  "to",
+  as.character(as.Date(time_range[2])),
+  ".pdf", sep = "_"),
+  device = "pdf",
+  width = 8, height = 5,
+  units = "in")
+
+ggsave(filename = paste(
+  file_name_prefix, tag,
+  as.character(as.Date(time_range[1])),
+  "to",
+  as.character(as.Date(time_range[2])),
+  ".jpg", sep = "_"),
+  device = "jpg",
+  width = 8, height = 5,
+  units = "in")
+
+```
+
