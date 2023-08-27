@@ -13,7 +13,9 @@ Based on examples in **Motus R Book**
 by Tara L. Crewe, Zoe Crysler, and Philip Taylor
 https://beta.motus.org/MotusRBook/
 
-This is set up to have most of the things you might want to change in the top code block.  If you will need to update the database files for project or receiver, do that in the 'update' and 'rectags' blocks below.  Otherwise, the code just connects you to the existing databases.
+This is set up to have most of the things you might want to change between projects or repeat downloads in the top code block.  If you will need to update the database files for project or receiver, do that in the 'update' and 'rectags' blocks below by running the commented versions of the tagme command.  Otherwise, the code just connects you to the existing databases.
+
+
 
 ```{r setup}
 # install.packages("motus", 
@@ -76,6 +78,8 @@ Once you have the .motus files downloaded and updated, you can look at them
 using a database viewer like dBeaver by connecting an sQLite connection to the 
 location on disk.
 
+This block also exports a version of the alltags file to import later, if needed.
+
 ```{r data}
 file.name <- dbConnect(SQLite(),
                        paste0("project-",
@@ -105,8 +109,10 @@ saveRDS(df.alltags, paste0("df.alltags.",
 # df.alltags = readRDS("df.alltags.2023-08-21.rds")
 ```
 
+
 ## Tag Deployments
 
+This section prints a list of tags registered to the project you enter above, which tags are deployed, not deployed, multiple deployments, and plot timelines for deployed tags. 
 
 ```{r tagdeploys}
 # 1. download full tag metadata for our project only
@@ -160,6 +166,11 @@ df.timeline = df.tagDeps %>%
 
 p = gg_vistime(df.timeline)
 p
+```
+
+### Maps of tag deployments
+
+```{r tagdeploymap}
 
 # 4. determine location of tag deployments
 na.lakes <- map_data(map = "lakes")
@@ -191,6 +202,14 @@ ggplot(data = na.lakes, aes(x = long, y = lat)) +
   theme_bw() + 
   geom_point(data = filter(df.tagDeps, projectID == proj.num), 
              aes(longitude, latitude), size = 2, shape = 1, colour = "red")
+```
+
+
+### QA/QC on tag deployments
+
+A summary of the df.tagDeps file to look for missing data.  Also a species list.
+
+```{r tagdeployqaqc}
 
 # 5. determine completeness and accuracy of tag deployment metadata
   # Range of metadata values
@@ -214,8 +233,10 @@ tbl.species %>%
 
 ```
 
+
 ## Reciever Metadata
 
+List summary stats on number of project receiver deployments and their timeframes and look for errors in metadata. 
 
 ```{r recievermeta}
 
@@ -271,6 +292,13 @@ ggplot(data = df.projRecvs.long,
             aes(label = deployID), hjust = "left", nudge_y = 0.4, size = 3) +
   labs(x = "Day of year", y = "Receiver ID") +
   facet_grid(year(ts) ~ ., scales = "free")
+```
+
+
+### Reciever map
+
+
+```{r receivermap}
 
 # 4. determine location of network-wide and project receiver deployments
 df.recvDeps <- tbl.recvDeps %>%
@@ -332,8 +360,12 @@ ggplot(data = na.lakes, aes(x = long, y = lat))+
                            !is.na(latitude)),  # remove mobile receivers
              aes(longitude, latitude, colour = as.factor(deviceID)), size = 2, shape = 1)+
   scale_colour_discrete(name = "Receiver ID") 
+```
+
+### Receiver QA/QC
 
 
+```{r receivermap}
 # 5. determine completeness and accuracy of receiver metadata
 
 tbl.antDeps <- tbl(proj.sql.motus, "antDeps") 
@@ -358,6 +390,8 @@ summary(df.stationDeps)
 
 
 ## Data cleaning
+
+Starts by looking at tag detections and runs of detections with less than or greater than 3 detections.  Short runs of <= 3 are eliminated.
 
 ```{r cleaning}
 # This uses the local copy created above
@@ -396,6 +430,7 @@ filter(tbl_filtered, runLen <= 3) %>%
   nrow()
 # 723 rows have runLen <=3
 
+# This can take a really long time.
 tbl.filtered.alltags <- filterByActivity(proj.sql.motus, return = "all")
 
 # Filter out the rows of short run records
@@ -434,7 +469,14 @@ df.block.0 <- filter(tbl.filtered.alltags, probability == 0) %>%
 gps_index <- getGPS(proj.sql.motus, data = df.alltags.sub, by = "daily")
 gps_index <- getGPS(proj.sql.motus, data = df.alltags.sub, by = "closest", cutoff = 20)
 gps_index <- getGPS(proj.sql.motus, data = df.alltags.sub, by = 15)
+```
 
+
+### QA/QC for remaining data after filtering out short runs.
+
+Find and remove detections with less than 4 detections in a row, and then plot sets of Latitudes to see if there are detections where the GPS location is way off.
+
+```{r longruns}
 
 # Merge GPS points in with our data
 df.alltags.sub <- left_join(df.alltags.sub, gps_index, by = "hitID")
