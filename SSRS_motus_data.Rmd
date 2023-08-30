@@ -683,6 +683,8 @@ rec_id_canebrake = "CTT-27532C924059"
 rec_id_tunnel = "CTT-85E9238B9814"
 # Frog Spring
 rec_id_frog = "CTT-7406F10DF482"
+# Freeman Canyon Spring
+rec_id_freeman = "CTT-89E107C9320E"
 
 # Just connect and use the current .motus SQLite files created or updated above (around line 108)
 rec.motus_migcor = tagme(rec_id_migrantcorner, new=F, update = F)
