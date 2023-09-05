@@ -110,7 +110,8 @@ Sys.setenv(TZ = "UTC")
 # Migrant corner
 rec_id_migrantcorner =  "CTT-1F618DF06116"
 # Red tail Hill (RTH)
-rec_id_redtailhill =  "CTT-957865AC5BF7"
+# rec_id_redtailhill =  "CTT-957865AC5BF7" # (older deployment)
+rec_id_redtailhill =  "CTT-CF99390B9635"
 # Canebrake
 rec_id_canebrake = "CTT-27532C924059"
 # MDLT
@@ -124,13 +125,13 @@ rec_id_freeman = "CTT-89E107C9320E"
 rec_id_caliente = "CTT-3A2F497F6F83"
 
 # Change this
-# rec_id = rec_id_migrantcorner
+rec_id = rec_id_migrantcorner
 # rec_id = rec_id_redtailhill
 # rec_id = rec_id_tunnel
 # rec_id = rec_id_frog
 # rec_id = rec_id_canebrake
   # rec_id = rec_id_freeman
-  rec_id = rec_id_caliente
+  # rec_id = rec_id_caliente
 
 # *** First time only ***
 # This can take a long time
@@ -914,7 +915,6 @@ ybcu_nodes = test_ybcu_nodes %>%
 
 
 ## Leaflet map to examine data
-
 
 ```{r mapnodes}
 # install.packages("leaflet.extras2", "geojsonsf")
