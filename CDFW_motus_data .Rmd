@@ -15,9 +15,9 @@ https://beta.motus.org/MotusRBook/
 
 This is set up to have most of the things you might want to change between projects or repeat downloads in the top code block.  If you will need to update the database files for project or receiver, do that in the 'update' and 'rectags' blocks below by running the commented versions of the tagme command.  Otherwise, the code just connects you to the existing databases.
 
+This file is not set up to knit.  Run what you want.  You will need certain things to be in memory for motus_receiver_data.Rmd to run properly.
 
-
-```{r setup}
+```{r packagesparams}
 # install.packages("motus", 
 #                  repos = c(birdscanada = 'https://birdscanada.r-universe.dev',
 #                            CRAN = 'https://cloud.r-project.org'))
@@ -38,7 +38,9 @@ library(rworldmap)
 
 # Project
 # California Department of Fish and Wildlife Motus (#446)
-proj.num = 446
+# proj.num = 446 # CDFW
+proj.num = 247 # SSRS
+# proj.num = 9436 # ALF
 
 ## First time
 # proj.sql.motus <- tagme(projRecv = proj.num, new = TRUE, update = TRUE)
@@ -69,6 +71,12 @@ proj.sql.motus <- tagme(projRecv = proj.num, new = FALSE, update = FALSE)
 ## Access this in recDeps table in proj.projnum.sql.motus
 # metadata(proj.sql.motus, projectIDs = proj.num)
 
+tbl.alltags <- tbl(proj.sql.motus, "alltags")
+# Bring data in from .motus file as data.frame and fix datetime
+df.alltags <- tbl.alltags %>% 
+  collect() %>% 
+  as.data.frame() %>%     # for all fields in the df (data frame)
+  mutate(ts = as_datetime(ts, tz = "UTC", origin = "1970-01-01"))
 # motusLogout()
 ```
 
@@ -365,7 +373,7 @@ ggplot(data = na.lakes, aes(x = long, y = lat))+
 ### Receiver QA/QC
 
 
-```{r receivermap}
+```{r receiverqaqc}
 # 5. determine completeness and accuracy of receiver metadata
 
 tbl.antDeps <- tbl(proj.sql.motus, "antDeps") 
