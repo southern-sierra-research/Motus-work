@@ -1,10 +1,10 @@
 # Motus-work
 
-This project is to track how Motus R book inspired work to look at local Motus station and tag data.  
+This project uses Motus R book inspired methods to look at local Motus station and tag data.  
 
-It is currently focused on project #247 Southern Sierra Research Station Kern River Project (formerly Kern River Valley Tri-colored Blackbird Study).
+Since each project is likely to have different goals and data issues, we start with a file designed to look at project data and metadata for QA/QC called ????_motus_data.Rmd, where ???? is a project designator.  The example files can be customized for any project.  Several are given as examples.
 
-Recent additions have split things out into 3 files:  project level with QA/QC, single receiver with QA/QC, and multiple receiver plots to see signal strength plots of the same tag on the same timeline, to compare signals across antenna arrays so that we can judge direction of flight.
+We have split the remaining tasks out into two files:  single receiver with QA/QC (motus_receiver_data.Rmd), and multiple receiver with plots (motus_signal_by_antenna_comparison.Rmd).  The single receiver file can be run line by line to get the receiver databases you need downloaded and to update them.  The multiple receiver file will allow you to see signal strength plots of the same tag on the same timeline, to compare signals across antenna arrays so that we can judge direction of flight.
 
 If you have to download or update either the project or reciever databases, it takes a long time.  Having these tasks seperated out makes it easier to modify just the task you are focussed on.
 
@@ -19,6 +19,6 @@ A typical use case would be:
 1. Notice new interesting detections or need to do some reports about detections for stakeholders.
 2. Record project ID, receiver deployment IDs or serial numbers, and time frame
 3. Run line-by-line through project file to get an up to date project database file locally and check for problems
-4. Run a the receiver script for each receiver ID to date receiver database files locally and check for problems
+4. Run a the receiver script for each receiver ID to update receiver database files locally and check for problems
 5. Run the plot comparison file to get some plots to use for flight direction and timing analyses and reports
 
