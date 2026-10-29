@@ -75,7 +75,7 @@ df.projRecvs.tab
 
 # Get the CTT serial number for use in tagme commands
 #   Is this better than just setting this directly?
-(rec_id = "CTT-V30B0154E4B7")
+(rec_id = "CTT-39A7525A06F7")
 
 # Tags detected by stations
 #   Comment out all but focal one to save others for later reuse.
