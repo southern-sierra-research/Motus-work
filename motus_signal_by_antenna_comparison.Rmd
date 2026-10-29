@@ -55,7 +55,7 @@ using = c(2, 4,  7) # Hummus August 7-9, 2023
 rec_list = as.list(df.projRecvs.tab$serno)[using]
 # rec_list = list("CTT-1F618DF06116", "CTT-27532C924059", "CTT-7406F10DF482", "CTT-89E107C9320E")
 # We can add other stations from different projects to this list
-rec_list = append(rec_list, "CTT-V30B0154E4B7")
+rec_list = append(rec_list, c("CTT-V30B0154E4B7", "CTT-39A7525A06F7"))
 
 # Tags
 tag_motus_id = 60762 
@@ -123,7 +123,7 @@ df.alltags = df.alltags_list %>%
 # To make this work, we convert to POSIXCt datetime and add the right number of
 # seconds.
 
-# (time_range = as.POSIXct(c("2023-08-09", "2023-08-10")))
+# (time_range = as.POSIXct(c("2023-08-09 03:00:00 UTC", "2023-08-10 24:00:00 UTC")))
 
 df.rec_tags = df.alltags %>%
   filter(motusTagID == tag_motus_id,
