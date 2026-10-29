@@ -1,0 +1,147 @@
+---
+title: "MotusStationActivity"
+author: "Patrick D. lorch"
+date: "2026-10-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Motus activity monitoring
+
+Get some maps.  Connect to .motus database for a project (recently updated using code in SSRS_motus_data.Rmd).
+
+
+```{r setup}
+library(sf)
+library(dplyr)
+# install.packages('tigris')
+library(tigris)
+library(motus)
+library(openxlsx)
+library(ggplot2)
+
+options(tigris_use_cache = TRUE)
+
+proj.num = 247 #  SSRS; 446 for CDFW
+focal.motus = file.path("C:",
+                        "Users",
+                        "PatrickLorch",
+                        "OneDrive - SSRS",
+                        "MotusGeneral",
+                        "rmotus_work",
+                        "Motus-work")
+
+```
+
+
+### State outlines
+
+We generate these to subset and count Motus stations.
+
+
+```{r states}
+us_states = states()
+# Single state
+CA_ountline_sf = us_states %>% 
+  filter(STUSPS == "CA")
+plot(CA_ountline_sf[7], main = "California")
+
+# Multiple state
+SW_states_outline_sf = us_states %>% 
+  filter(STUSPS %in% c("AZ", "CA", "NM", "NV"))
+plot(SW_states_outline_sf[7], main = "CA, AZ, NV, and NM")
+```
+
+### Connect to db and check last detection
+
+
+```{r getlatest}
+# use dir = to specify a directory
+sql_motus = tagme(projRecv = proj.num, update = FALSE, dir = focal.motus)
+
+tbl_recvDeps = tbl(sql_motus, "recvDeps")
+unique(pull(tbl_recvDeps, status))
+df_recvDeps_active = tbl_recvDeps %>%
+  filter(status == "active",
+         !is.na(latitude)) %>% 
+  collect() %>% 
+  as.data.frame()
+
+
+```
+
+### Subset by state or states polygon
+
+
+
+```{r subsetbystate}
+df_recvDeps_active_sf_4326 = st_as_sf(df_recvDeps_active, 
+                                      coords = c("longitude", "latitude"), 
+                                      crs = 4326)
+CA_ountline_sf_4326 = st_transform(CA_ountline_sf, crs = 4326)
+CA_df_recvDeps = df_recvDeps_active_sf_4326 %>%
+  st_filter(CA_ountline_sf_4326, .predicate = st_intersects) %>%
+  mutate(Start_deploy = as_datetime(tsStart, tz = "UTC", origin = "1970-01-01"),
+         longitude = st_coordinates(geometry)[,1],
+         latitude = st_coordinates(geometry)[,2],
+         CA_Latest_data = NA) 
+# Attempt to get rid of list error by removing lists and anything with Nan for mean
+# %>%
+#   select(-(c(tsEnd, macAddress, utcOffset, geometry)))
+
+names(CA_df_recvDeps)
+CA_df_recvDeps_less = as.data.frame(CA_df_recvDeps) %>%
+  select(c("deployID", "serno", "receiverType",
+           "deviceID", "name", "Start_deploy",
+           "longitude",
+           "latitude", 
+           "CA_Latest_data"))
+# Export to add latest data date by looking up stations by name
+write.xlsx(CA_df_recvDeps_less, 
+           "CA_df_recvDeps_less.xlsx")
+# Bring back in
+CA_df_recvDeps_less_latest = 
+  read.xlsx("CA_df_recvDeps_less.xlsx", detectDates = T)
+CA_df_recvDeps_less = CA_df_recvDeps_less %>%
+  select(-CA_Latest_data) %>%
+  st_as_sf(coords = c("longitude", "latitude"),
+           crs = 4326)
+CA_latest = CA_df_recvDeps_less_latest %>%
+  select(deployID, CA_Latest_data)
+CA_df_recvDeps_latest = CA_df_recvDeps_less %>%
+  left_join(CA_latest, by = "deployID")
+
+CA_df_recvDeps_latest = CA_df_recvDeps_latest %>% 
+  mutate(months_old = interval(CA_Latest_data, 
+                               as.Date("2026-10-16")) %/% months(1))
+
+table(CA_df_recvDeps_latest$months_old)
+CA_stations = length(na.omit(CA_df_recvDeps_latest$months_old))
+CA_stations-83
+(CA_dead_stations = (CA_stations-83)/CA_stations) 
+# currently 24 of 107 stations (22%) marked as active 
+#  have not reported data in over a month
+
+# Fails with some wierd list error
+# write.xlsx(CA_df_recvDeps,
+#            file = "CA_df_recvDeps.xlsx")
+
+plot(CA_ountline_sf_4326[7], main = "California", )
+points((CA_df_recvDeps[2]), main = "CA Motus stations")
+# points(CA_df_recvDeps[2])
+
+CA_df_recvDeps_latest = CA_df_recvDeps_latest %>%
+  mutate(up_to_date = ifelse(months_old >= 1, "Old (>= 1 month)", "Not old (< 1 month"))
+
+ggplot() +
+  geom_sf(data = CA_ountline_sf_4326[7], fill = "grey95") +
+  geom_sf(data = CA_df_recvDeps_latest, aes(color = up_to_date), size = 2) +
+   scale_color_viridis_d() +
+  theme_classic()
+
+
+
+```
