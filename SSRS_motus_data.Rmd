@@ -15,7 +15,7 @@ https://beta.motus.org/MotusRBook/
 
 
 ```{r setup}
-# install.packages("motus", 
+# install.packages("motus",
 #                  repos = c(birdscanada = 'https://birdscanada.r-universe.dev',
 #                            CRAN = 'https://cloud.r-project.org'))
 library(motus)
@@ -32,10 +32,10 @@ Sys.setenv(TZ = "UTC")
 # frog spring, tunnel spring, freeman canyon spring
 # upper caliente creek
 
-df.247.serno = c("CTT-957865AC5BF7", "CTT-27532C924059", "CTT-1F618DF06116", 
-                 "CTT-7406F10DF482", "CTT-85E9238B9814","CTT-89E107C9320E",
-                 "CTT-3A2F497F6F83")
-# Uninstalled "CTT-C0612F7F986B",
+df.247.serno = c("CTT-89E107C9320E", "CTT-7406F10DF482", "CTT-1F618DF06116",
+                 "CTT-V3023D363C1C", "CTT-85E9238B9814", "CTT-V3023D368F80")
+# Uninstalled "CTT-C0612F7F986B", "CTT-957865AC5BF7", "CTT-27532C924059","CTT-3A2F497F6F83"
+# 
 
 # Project
 ## First time
@@ -50,17 +50,17 @@ motusLogout()
 
 You can update individual sql files or all at once.
 
-I have stopped updating the project or all at once.
+I have stopped updating the project all at once.
 
 ```{r update}
 # Project
 ## Update existing project from motus database
 proj.247.sql.motus <- tagme(projRecv = 247, new = FALSE, update = TRUE)
 
-# Kern River Valley Tri-colored Blackbird Study
-rec.247.names = paste0(c("rth", "canebrake", "migrant corner", 
-                         "frog spring", "tunnel spring", 
-                         "freeman canyon spring", "upper caliente creek"), 
+# Southern Sierra Research Station Kern River Project" (#247)
+rec.247.names = paste0(c("freeman canyon spring", "frog spring", 
+                         "migrant corner", "rth", "tunnel spring", 
+                          "upper caliente creek"), 
                        ".sql.motus")
 
 # Individually
@@ -76,9 +76,9 @@ rec.247.names[7] <- tagme(projRecv = df.247.serno[7], new = TRUE, update = TRUE)
 
 # All at once with variable assignment so it is comparable to the individual way
 # SSRS
-for (k in 1:length(df.247.serno)) {
-  assign(rec.247.names[k], tagme(df.247.serno[k], update = TRUE))
-}
+# for (k in 1:length(df.247.serno)) {
+#   assign(rec.247.names[k], tagme(df.247.serno[k], update = TRUE))
+# }
 
 # All at once without varialbe assignment
 # for (k in 1:length(df.serno)) {
